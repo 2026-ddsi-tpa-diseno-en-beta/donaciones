@@ -8,6 +8,7 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.*;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.logistica.DepositoDTO;
+import ar.edu.utn.dds.k3003.catedra.dtos.logistica.TipoAlgoritmoEnum;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonaciones;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
@@ -98,7 +99,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     DonacionDTO retorno = instancia.registrarDonacion(donacionEjemplo);
 
@@ -119,7 +127,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     Assertions.assertThrows(
         RuntimeException.class,
@@ -173,7 +188,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     DonacionDTO retornoD = instancia.registrarDonacion(donacionEjemplo);
 
@@ -202,7 +224,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
     when(fachadaDonadoresYEntidades.agregarQueja(any())).thenThrow(new RuntimeException());
 
     Assertions.assertThrows(
@@ -236,7 +265,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     DonacionDTO retorno = instancia.registrarDonacion(donacionEjemplo);
 
@@ -260,7 +296,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     Assertions.assertThrows(
         RuntimeException.class,
@@ -288,7 +331,14 @@ public class DonacionesTest {
         .thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar(donadorEjemplo.id())).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "deposito1", "direccion1", 1000, null));
+        .thenReturn(
+            new DepositoDTO(
+                "deposito1",
+                TipoAlgoritmoEnum.SUB_ATENDIDOS,
+                "deposito1",
+                "direccion1",
+                1000,
+                null));
 
     DonacionDTO retorno = instancia.registrarDonacion(donacionEjemplo);
 
