@@ -79,7 +79,7 @@ class FachadaDonacionesTest {
     when(fachadaDonadoresYEntidades.buscarDonadorPorID("donador1")).thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar("donador1")).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "Deposito Central", "Calle 123", 1000, null));
+        .thenReturn(new DepositoDTO("deposito1", null, "Deposito Central", "Calle 123", 1000, null));
   }
 
   @Test
