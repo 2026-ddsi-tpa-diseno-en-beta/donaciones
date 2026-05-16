@@ -14,7 +14,14 @@
 ---
 
 ## Link al despliegue en Render
-- Pendiente
+
+
+---
+
+## Documentacion
+- [Diagrama de clases](docs/clases.md)
+- [Diagrama de arquitectura](docs/arquitectura.md)
+- [Especificacion OpenAPI](docs/openapi.yaml)
 
 ---
 
@@ -22,18 +29,18 @@
 
 ### Donaciones
 - `POST /donaciones`
-- `GET /donaciones/{donacionID}`
+- `GET /donaciones/{id}`
 - `GET /donaciones?donadorID={donadorID}&fecha={yyyy-MM-dd}`
-- `PATCH /donaciones/{donacionID}/estado?estado={INGRESADA|ACEPTADA|CONQUEJA}`
-- `POST /donaciones/{donacionID}/quejas`
+- `PATCH /donaciones/{id}/estado?estado={INGRESADA|ACEPTADA|CONQUEJA}`
+- `POST /donaciones/{id}/quejas`
 
 ### Productos
 - `POST /productos`
-- `GET /productos/{productoID}`
+- `GET /productos/{id}`
 
 ### Identificadores
 - `POST /identificadores`
-- `GET /identificadores/{identificadorID}`
+- `GET /identificadores/{id}`
 
 ---
 

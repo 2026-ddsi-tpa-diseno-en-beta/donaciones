@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: DonaTrack - Servicio de Donaciones
+  version: 1.0.0
+  description: API implementada para la Entrega 2 del componente Donaciones.
+servers:
+  - url: http://localhost:8080
+    description: Ejecucion local
+paths:
+  /donaciones:
+    post:
+      summary: Registrar una donacion
+      operationId: registrarDonacion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonacionDTO"
+            example:
+              donadorID: "donador1"
+              depositoID: "deposito1"
+              descripcion: "10 paquetes de arroz"
+              productoID: "1"
+              cantidad: 10
+              estado: "INGRESADA"
+      responses:
+        "201":
+          description: Donacion registrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    get:
+      summary: Buscar donaciones por donador y fecha de inicio
+      operationId: buscarPorDonadorYFechaInicio
+      parameters:
+        - name: donadorID
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2026-05-16"
+      responses:
+        "200":
+          description: Donaciones encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /donaciones/{id}:
+    get:
+      summary: Buscar una donacion por ID
+      operationId: buscarDonacionPorID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Donacion encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /donaciones/{id}/estado:
+    patch:
+      summary: Cambiar el estado de una donacion
+      operationId: cambiarEstadoDeDonacion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: estado
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/EstadoDonacionEnum"
+      responses:
+        "200":
+          description: Donacion actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /donaciones/{id}/quejas:
+    post:
+      summary: Registrar una queja sobre una donacion aceptada
+      operationId: registrarQuejaEnDonacion
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuejaRequest"
+            example:
+              descripcion: "Producto en mal estado"
+      responses:
+        "200":
+          description: Donacion actualizada a CONQUEJA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /productos:
+    post:
+      summary: Agregar un producto
+      operationId: agregarProducto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoDTO"
+            example:
+              nombre: "Arroz blanco"
+              descripcion: "paquete de arroz"
+              categoriaID: null
+              identificadorID: "1"
+      responses:
+        "201":
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductoDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /productos/{id}:
+    get:
+      summary: Buscar un producto por ID
+      operationId: buscarProductoPorID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductoDTO"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /identificadores:
+    post:
+      summary: Agregar un identificador
+      operationId: agregarIdentificador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentificadorDTO"
+            example:
+              tipo: "CODIGODEBARRAS"
+              descripcion: "codigo de barras"
+      responses:
+        "201":
+          description: Identificador creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificadorDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /identificadores/{id}:
+    get:
+      summary: Buscar un identificador por ID
+      operationId: buscarIdentificadorPorID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Identificador encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificadorDTO"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  schemas:
+    DonacionDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        donadorID:
+          type: string
+        depositoID:
+          type: string
+        descripcion:
+          type: string
+        productoID:
+          type: string
+        cantidad:
+          type: integer
+          format: int32
+        estado:
+          $ref: "#/components/schemas/EstadoDonacionEnum"
+      required:
+        - donadorID
+        - depositoID
+        - descripcion
+        - productoID
+        - cantidad
+    ProductoDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        nombre:
+          type: string
+        descripcion:
+          type: string
+        categoriaID:
+          type: string
+          nullable: true
+        identificadorID:
+          type: string
+      required:
+        - nombre
+        - descripcion
+        - identificadorID
+    IdentificadorDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        tipo:
+          $ref: "#/components/schemas/TipoIdentificadorEnum"
+        descripcion:
+          type: string
+      required:
+        - tipo
+        - descripcion
+    QuejaRequest:
+      type: object
+      properties:
+        descripcion:
+          type: string
+      required:
+        - descripcion
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    EstadoDonacionEnum:
+      type: string
+      enum:
+        - INGRESADA
+        - ACEPTADA
+        - CONQUEJA
+    TipoIdentificadorEnum:
+      type: string
+      enum:
+        - CODIGODEBARRAS
+        - QR
+  responses:
+    BadRequest:
+      description: Error de validacion o regla de negocio
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

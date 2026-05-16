@@ -26,8 +26,8 @@ public class ProductosController {
     return ResponseEntity.status(HttpStatus.CREATED).body(fachada.agregarProducto(productoDTO));
   }
 
-  @GetMapping("/{productoID}")
-  public ResponseEntity<ProductoDTO> buscarProductoPorID(@PathVariable String productoID) {
+  @GetMapping("/{id}")
+  public ResponseEntity<ProductoDTO> buscarProductoPorID(@PathVariable("id") String productoID) {
     return ResponseEntity.ok(fachada.buscarProductoPorID(productoID));
   }
 }

@@ -28,9 +28,9 @@ public class IdentificadoresController {
         .body(fachada.agregarIdentificador(identificadorDTO));
   }
 
-  @GetMapping("/{identificadorID}")
+  @GetMapping("/{id}")
   public ResponseEntity<IdentificadorDTO> buscarIdentificadorPorID(
-      @PathVariable String identificadorID) {
+      @PathVariable("id") String identificadorID) {
     return ResponseEntity.ok(fachada.buscarIdentificadorPorID(identificadorID));
   }
 }
