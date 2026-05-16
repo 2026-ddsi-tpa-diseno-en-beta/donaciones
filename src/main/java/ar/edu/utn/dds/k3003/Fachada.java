@@ -2,32 +2,52 @@ package ar.edu.utn.dds.k3003;
 
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.ProductoDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonaciones;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
 import ar.edu.utn.dds.k3003.model.Donacion;
+import ar.edu.utn.dds.k3003.model.Identificador;
+import ar.edu.utn.dds.k3003.model.Producto;
 import ar.edu.utn.dds.k3003.repositories.DonacionesMapper;
 import ar.edu.utn.dds.k3003.repositories.DonacionesRepository;
+import ar.edu.utn.dds.k3003.repositories.IdentificadorMapper;
+import ar.edu.utn.dds.k3003.repositories.IdentificadoresRepository;
 import ar.edu.utn.dds.k3003.repositories.InMemoryDonacionesRepo;
+import ar.edu.utn.dds.k3003.repositories.InMemoryIdentificadoresRepo;
+import ar.edu.utn.dds.k3003.repositories.InMemoryProductosRepo;
+import ar.edu.utn.dds.k3003.repositories.ProductoMapper;
+import ar.edu.utn.dds.k3003.repositories.ProductosRepository;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
+@Service
 public class Fachada implements FachadaDonaciones {
 
   private FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
   private FachadaLogistica fachadaLogistica;
 
   private final DonacionesRepository donacionesRepository;
-  private final DonacionesMapper mapper;
+  private final ProductosRepository productosRepository;
+  private final IdentificadoresRepository identificadoresRepository;
+  private final DonacionesMapper donacionesMapper;
+  private final ProductoMapper productoMapper;
+  private final IdentificadorMapper identificadorMapper;
 
   public Fachada() {
     this.donacionesRepository = new InMemoryDonacionesRepo();
-    this.mapper = new DonacionesMapper();
+    this.productosRepository = new InMemoryProductosRepo();
+    this.identificadoresRepository = new InMemoryIdentificadoresRepo();
+    this.donacionesMapper = new DonacionesMapper();
+    this.productoMapper = new ProductoMapper();
+    this.identificadorMapper = new IdentificadorMapper();
   }
 
   @Override
@@ -43,10 +63,13 @@ public class Fachada implements FachadaDonaciones {
   @Override
   public DonacionDTO registrarDonacion(DonacionDTO donacionDTO) {
     if (donacionDTO == null) {
-      throw new RuntimeException("La donación no puede ser nula");
+      throw new RuntimeException("La donacion no puede ser nula");
     }
     if (donacionDTO.id() != null && donacionesRepository.findById(donacionDTO.id()).isPresent()) {
-      throw new RuntimeException("La donación ya existe en el sistema");
+      throw new RuntimeException("La donacion ya existe en el sistema");
+    }
+    if (productosRepository.findById(donacionDTO.productoID()).isEmpty()) {
+      throw new RuntimeException("El producto indicado no existe");
     }
 
     DonadorDTO donador;
@@ -80,7 +103,7 @@ public class Fachada implements FachadaDonaciones {
           guardada.getCantidad());
     }
 
-    return mapper.toDTO(guardada);
+    return donacionesMapper.toDTO(guardada);
   }
 
   @Override
@@ -89,27 +112,23 @@ public class Fachada implements FachadaDonaciones {
         donacionesRepository
             .findById(donacionID)
             .orElseThrow(
-                () ->
-                    new NoSuchElementException("No existe una donación con el ID: " + donacionID));
-    return mapper.toDTO(donacion);
+                () -> new NoSuchElementException("No existe una donacion con ese ID"));
+
+    return donacionesMapper.toDTO(donacion);
   }
 
   @Override
   public DonacionDTO cambiarEstadoDeDonacion(String donacionID, EstadoDonacionEnum estado)
       throws NoSuchElementException {
-    if (estado == null) {
-      throw new RuntimeException("El nuevo estado no puede ser nulo");
-    }
-
     Donacion donacion =
         donacionesRepository
             .findById(donacionID)
-            .orElseThrow(() -> new NoSuchElementException("No existe la donación a modificar"));
+            .orElseThrow(() -> new NoSuchElementException("No existe la donacion a modificar"));
 
-    donacion.agregarCambioDeEstado(estado, "Cambio de estado reportado por Logística/Sistema");
+    donacion.cambiarEstado(estado, "Cambio de estado reportado por Logistica/Sistema");
     donacionesRepository.save(donacion);
 
-    return mapper.toDTO(donacion);
+    return donacionesMapper.toDTO(donacion);
   }
 
   @Override
@@ -132,21 +151,25 @@ public class Fachada implements FachadaDonaciones {
 
     return donacionesDelDonador.stream()
         .filter(d -> !d.getHistorialEstados().get(0).getFechaCambio().toLocalDate().isBefore(fecha))
-        .map(mapper::toDTO)
+        .map(donacionesMapper::toDTO)
         .collect(Collectors.toList());
   }
 
   @Override
   public DonacionDTO registrarQuejaEnDonacion(String donacionID, String descripcion) {
     if (donacionID == null) {
-      throw new RuntimeException("El ID de la donación no puede ser nulo");
+      throw new RuntimeException("El ID de la donacion no puede ser nulo");
     }
 
     Donacion donacion =
         donacionesRepository
             .findById(donacionID)
             .orElseThrow(
-                () -> new RuntimeException("No se encontró la donación para registrar la queja"));
+                () -> new RuntimeException("No se encontro la donacion para registrar la queja"));
+
+    if (!EstadoDonacionEnum.ACEPTADA.equals(donacion.getEstadoActual())) {
+      throw new RuntimeException("Solo se puede registrar una queja sobre una donacion aceptada");
+    }
 
     try {
       QuejaDTO quejaDTO =
@@ -157,9 +180,66 @@ public class Fachada implements FachadaDonaciones {
       throw new RuntimeException("No se pudo registrar la queja en el sistema de Donadores", e);
     }
 
-    donacion.agregarCambioDeEstado(EstadoDonacionEnum.CONQUEJA, descripcion);
+    donacion.cambiarEstado(EstadoDonacionEnum.CONQUEJA, descripcion);
     donacionesRepository.save(donacion);
 
-    return mapper.toDTO(donacion);
+    return donacionesMapper.toDTO(donacion);
+  }
+
+  @Override
+  public ProductoDTO agregarProducto(ProductoDTO productoDTO) {
+    if (productoDTO == null) {
+      throw new RuntimeException("El producto no puede ser nulo");
+    }
+    if (productoDTO.id() != null && productosRepository.findById(productoDTO.id()).isPresent()) {
+      throw new RuntimeException("El producto ya existe en el sistema");
+    }
+
+    Identificador identificador =
+        identificadoresRepository
+            .findById(productoDTO.identificadorID())
+            .orElseThrow(() -> new NoSuchElementException("No existe el identificador indicado"));
+
+    Producto producto = productoMapper.toModel(productoDTO, identificador);
+    Producto guardado = productosRepository.save(producto);
+
+    return productoMapper.toDTO(guardado);
+  }
+
+  @Override
+  public ProductoDTO buscarProductoPorID(String productoID) throws NoSuchElementException {
+    Producto producto =
+        productosRepository
+            .findById(productoID)
+            .orElseThrow(() -> new NoSuchElementException("No existe un producto con ese ID"));
+
+    return productoMapper.toDTO(producto);
+  }
+
+  @Override
+  public IdentificadorDTO agregarIdentificador(IdentificadorDTO identificadorDTO) {
+    if (identificadorDTO == null) {
+      throw new RuntimeException("El identificador no puede ser nulo");
+    }
+    if (identificadorDTO.id() != null
+        && identificadoresRepository.findById(identificadorDTO.id()).isPresent()) {
+      throw new RuntimeException("El identificador ya existe en el sistema");
+    }
+
+    Identificador identificador = identificadorMapper.toModel(identificadorDTO);
+    Identificador guardado = identificadoresRepository.save(identificador);
+
+    return identificadorMapper.toDTO(guardado);
+  }
+
+  @Override
+  public IdentificadorDTO buscarIdentificadorPorID(String identificadorID)
+      throws NoSuchElementException {
+    Identificador identificador =
+        identificadoresRepository
+            .findById(identificadorID)
+            .orElseThrow(() -> new NoSuchElementException("No existe un identificador con ese ID"));
+
+    return identificadorMapper.toDTO(identificador);
   }
 }

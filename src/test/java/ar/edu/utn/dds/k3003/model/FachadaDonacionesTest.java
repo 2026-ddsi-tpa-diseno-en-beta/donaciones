@@ -9,6 +9,9 @@ import static org.mockito.Mockito.when;
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.ProductoDTO;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.TipoIdentificadorEnum;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.logistica.DepositoDTO;
@@ -33,6 +36,7 @@ class FachadaDonacionesTest {
 
   DonadorDTO donadorEjemplo;
   DonacionDTO donacionEjemplo;
+  ProductoDTO productoEjemplo;
 
   @BeforeEach
   void setUp() {
@@ -52,13 +56,21 @@ class FachadaDonacionesTest {
             null,
             "Ocasional");
 
+    IdentificadorDTO identificadorEjemplo =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+    productoEjemplo =
+        fachada.agregarProducto(
+            new ProductoDTO(
+                null, "Arroz blanco", "paquete de arroz", null, identificadorEjemplo.id()));
+
     donacionEjemplo =
         new DonacionDTO(
             null,
             "donador1",
             "deposito1",
             "10 paquetes de arroz",
-            "producto1",
+            productoEjemplo.id(),
             10,
             EstadoDonacionEnum.INGRESADA);
   }
@@ -67,7 +79,7 @@ class FachadaDonacionesTest {
     when(fachadaDonadoresYEntidades.buscarDonadorPorID("donador1")).thenReturn(donadorEjemplo);
     when(fachadaDonadoresYEntidades.puedeDonar("donador1")).thenReturn(Boolean.TRUE);
     when(fachadaLogistica.gestionarDonacion(any(), any(), any(), anyInt()))
-        .thenReturn(new DepositoDTO("deposito1", "Depósito Central", "Calle 123", 1000, null));
+        .thenReturn(new DepositoDTO("deposito1", "Deposito Central", "Calle 123", 1000, null));
   }
 
   @Test
@@ -84,7 +96,7 @@ class FachadaDonacionesTest {
     verify(fachadaDonadoresYEntidades, times(1)).buscarDonadorPorID("donador1");
     verify(fachadaDonadoresYEntidades, times(1)).puedeDonar("donador1");
     verify(fachadaLogistica, times(1))
-        .gestionarDonacion("deposito1", registrada.id(), "producto1", 10);
+        .gestionarDonacion("deposito1", registrada.id(), productoEjemplo.id(), 10);
   }
 
   @Test
@@ -141,6 +153,18 @@ class FachadaDonacionesTest {
   }
 
   @Test
+  void cambiarEstadoDeDonacionRechazaTransicionIngresadaAConQueja() {
+    stubDonadorHabilitado();
+    DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
+
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () -> fachada.cambiarEstadoDeDonacion(registrada.id(), EstadoDonacionEnum.CONQUEJA));
+    Assertions.assertEquals(
+        EstadoDonacionEnum.INGRESADA, fachada.buscarDonacionPorID(registrada.id()).estado());
+  }
+
+  @Test
   void cambiarEstadoDeDonacionConEstadoNuloFalla() {
     stubDonadorHabilitado();
     DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
@@ -181,6 +205,19 @@ class FachadaDonacionesTest {
   }
 
   @Test
+  void registrarQuejaSobreDonacionIngresadaFallaSinNotificar() {
+    stubDonadorHabilitado();
+    DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
+
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () -> fachada.registrarQuejaEnDonacion(registrada.id(), "mal estado"));
+    Assertions.assertEquals(
+        EstadoDonacionEnum.INGRESADA, fachada.buscarDonacionPorID(registrada.id()).estado());
+    verify(fachadaDonadoresYEntidades, times(0)).agregarQueja(any());
+  }
+
+  @Test
   void buscarPorDonadorYFechaInicioIncluyeDonacionesDesdeLaFecha() {
     stubDonadorHabilitado();
     DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
@@ -218,5 +255,94 @@ class FachadaDonacionesTest {
 
     Assertions.assertTrue(resultado.isEmpty());
     verify(fachadaDonadoresYEntidades, times(1)).buscarDonadorPorID("donador2");
+  }
+
+  @Test
+  void agregarIdentificadorAsignaIdYPermiteBuscarlo() {
+    IdentificadorDTO registrado =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+
+    IdentificadorDTO encontrado = fachada.buscarIdentificadorPorID(registrado.id());
+
+    Assertions.assertNotNull(registrado.id());
+    Assertions.assertEquals(registrado.id(), encontrado.id());
+    Assertions.assertEquals(TipoIdentificadorEnum.QR, encontrado.tipo());
+  }
+
+  @Test
+  void buscarIdentificadorPorIDInexistenteFalla() {
+    Assertions.assertThrows(
+        RuntimeException.class, () -> fachada.buscarIdentificadorPorID("inexistente"));
+  }
+
+  @Test
+  void agregarProductoConCodigoDeBarrasValidoPermiteBuscarlo() {
+    IdentificadorDTO identificador =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+
+    ProductoDTO registrado =
+        fachada.agregarProducto(
+            new ProductoDTO(
+                null, "Remera", "remera roja grande", "vestimenta", identificador.id()));
+
+    ProductoDTO encontrado = fachada.buscarProductoPorID(registrado.id());
+
+    Assertions.assertNotNull(registrado.id());
+    Assertions.assertEquals(registrado.id(), encontrado.id());
+    Assertions.assertEquals(identificador.id(), encontrado.identificadorID());
+  }
+
+  @Test
+  void agregarProductoConCodigoDeBarrasInvalidoFalla() {
+    IdentificadorDTO identificador =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            fachada.agregarProducto(
+                new ProductoDTO(null, "Remera", "remera", "vestimenta", identificador.id())));
+  }
+
+  @Test
+  void agregarProductoConQrValidoPermiteBuscarlo() {
+    IdentificadorDTO identificador =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+
+    ProductoDTO registrado =
+        fachada.agregarProducto(
+            new ProductoDTO(null, "Mesa", "mesa de comedor", "mobiliario", identificador.id()));
+
+    ProductoDTO encontrado = fachada.buscarProductoPorID(registrado.id());
+
+    Assertions.assertEquals(registrado.id(), encontrado.id());
+    Assertions.assertEquals("Mesa", encontrado.nombre());
+  }
+
+  @Test
+  void agregarProductoConQrInvalidoFalla() {
+    IdentificadorDTO identificador =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            fachada.agregarProducto(
+                new ProductoDTO(
+                    null, "Silla", "silla de comedor", "mobiliario", identificador.id())));
+  }
+
+  @Test
+  void agregarProductoSinIdentificadorPrevioFalla() {
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            fachada.agregarProducto(
+                new ProductoDTO(null, "Mesa", "mesa de comedor", "mobiliario", "inexistente")));
   }
 }

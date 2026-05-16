@@ -18,14 +18,11 @@ public class InMemoryDonacionesRepo implements DonacionesRepository {
   @Override
   public Donacion save(Donacion donacion) {
     if (donacion.getId() == null) {
-      // Si no tiene ID, es nueva. Le asignamos el secuencial y lo aumentamos.
       donacion.setId(String.valueOf(idSecuencial));
       idSecuencial++;
 
       this.donaciones.add(donacion);
     }
-    // Si ya tiene ID, es una actualización (ej. un cambio de estado).
-    // Al trabajar en memoria ya está actualizada por referencia.
     return donacion;
   }
 
