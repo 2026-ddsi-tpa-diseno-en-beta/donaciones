@@ -20,7 +20,7 @@ public interface FachadaLogistica {
   void setAlgoritmoMM(String depositoID, TipoAlgoritmoEnum tipoAlgoritmo);
 
   AsignacionDTO ejecutarMatchmaking(
-      String depositoID, PaqueteDTO paqueteDTO, List<NecesidadMaterialDTO> depositoDTO);
+      String depositoID, PaqueteDTO paqueteDTO, List<NecesidadMaterialDTO> necesidades);
 
   void reportarEntrega(PaqueteDTO paqueteDTO);
 
