@@ -29,4 +29,15 @@ public class InMemoryIdentificadoresRepo implements IdentificadoresRepository {
   public Optional<Identificador> findById(String id) {
     return this.identificadores.stream().filter(i -> i.getId().equals(id)).findFirst();
   }
+
+  @Override
+  public List<Identificador> findAll() {
+    return new ArrayList<>(this.identificadores);
+  }
+
+  @Override
+  public void deleteAll() {
+    this.identificadores.clear();
+    this.idSecuencial = 1;
+  }
 }

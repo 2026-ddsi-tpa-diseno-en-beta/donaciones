@@ -9,6 +9,7 @@ classDiagram
 direction LR
 
 class Donacion {
+  <<Entity>>
   -String id
   -String donadorId
   -String depositoId
@@ -21,12 +22,14 @@ class Donacion {
 }
 
 class CambioEstadoDonacion {
+  <<Embeddable>>
   -EstadoDonacionEnum estado
   -LocalDateTime fechaCambio
   -String detalle
 }
 
 class Producto {
+  <<Entity>>
   -String id
   -String nombre
   -String descripcion
@@ -35,6 +38,7 @@ class Producto {
 }
 
 class Identificador {
+  <<Entity>>
   -String id
   -TipoIdentificadorEnum tipo
   -String descripcion
@@ -69,3 +73,5 @@ Identificador --> TipoIdentificadorEnum : tipo
 - Un producto debe asociarse a un identificador previamente creado.
 - Si el identificador es `CODIGODEBARRAS`, la descripcion del producto debe tener al menos 3 palabras.
 - Si el identificador es `QR`, el nombre del producto debe tener una cantidad par de letras.
+- `Donacion`, `Producto` e `Identificador` se persisten con JPA.
+- El historial de estados de la donacion se persiste como coleccion embebida.

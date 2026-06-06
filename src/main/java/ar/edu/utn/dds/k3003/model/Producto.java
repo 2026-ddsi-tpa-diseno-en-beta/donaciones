@@ -1,16 +1,25 @@
 package ar.edu.utn.dds.k3003.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
+@Entity
 @Getter
 @Setter
 public class Producto {
+  @Id
   private String id;
+
   private String nombre;
   private String descripcion;
   private String categoriaId;
   private String identificadorId;
+
+  protected Producto() {}
 
   public Producto(
       String nombre, String descripcion, String categoriaId, Identificador identificador) {
@@ -31,5 +40,12 @@ public class Producto {
     this.descripcion = descripcion;
     this.categoriaId = categoriaId;
     this.identificadorId = identificador.getId();
+  }
+
+  @PrePersist
+  private void asignarIdSiHaceFalta() {
+    if (this.id == null) {
+      this.id = UUID.randomUUID().toString();
+    }
   }
 }

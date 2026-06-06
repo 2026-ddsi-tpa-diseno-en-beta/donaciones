@@ -2,6 +2,7 @@ package ar.edu.utn.dds.k3003.controllers;
 
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,11 @@ public class IdentificadoresController {
       @RequestBody IdentificadorDTO identificadorDTO) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(fachada.agregarIdentificador(identificadorDTO));
+  }
+
+  @GetMapping
+  public ResponseEntity<List<IdentificadorDTO>> listarIdentificadores() {
+    return ResponseEntity.ok(fachada.listarIdentificadores());
   }
 
   @GetMapping("/{id}")

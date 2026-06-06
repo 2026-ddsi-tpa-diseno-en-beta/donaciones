@@ -10,4 +10,8 @@ public interface DonacionesRepository {
   Optional<Donacion> findById(String id);
 
   List<Donacion> buscarPorDonador(String donadorId);
+
+  List<Donacion> findAll();
+
+  void deleteAll();
 }

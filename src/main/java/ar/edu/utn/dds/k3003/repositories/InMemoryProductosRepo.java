@@ -29,4 +29,15 @@ public class InMemoryProductosRepo implements ProductosRepository {
   public Optional<Producto> findById(String id) {
     return this.productos.stream().filter(p -> p.getId().equals(id)).findFirst();
   }
+
+  @Override
+  public List<Producto> findAll() {
+    return new ArrayList<>(this.productos);
+  }
+
+  @Override
+  public void deleteAll() {
+    this.productos.clear();
+    this.idSecuencial = 1;
+  }
 }

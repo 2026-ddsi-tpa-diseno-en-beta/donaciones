@@ -16,8 +16,13 @@ flowchart LR
     Controllers["Controllers REST\n/donaciones\n/productos\n/identificadores"]
     Fachada["FachadaDonaciones\nFachada"]
     Dominio["Dominio\nDonacion\nProducto\nIdentificador"]
-    Repos["Repositorios in-memory\nDonaciones\nProductos\nIdentificadores"]
+    Repos["Repositorios JPA\nDonaciones\nProductos\nIdentificadores"]
     Mappers["Mappers\nDTO a Dominio"]
+    Metrics["Micrometer / Actuator"]
+  end
+
+  subgraph Persistencia["Persistencia"]
+    DB["PostgreSQL\nH2 local/test"]
   end
 
   subgraph Donadores["Servicio de Donadores y Entidades"]
@@ -33,14 +38,18 @@ flowchart LR
   Fachada --> Dominio
   Fachada --> Repos
   Fachada --> Mappers
-  Fachada --> FDE
-  Fachada --> FL
+  Fachada --> Metrics
+  Repos --> DB
+  Fachada -->|HTTP| FDE
+  Fachada -->|HTTP| FL
 ```
 
 ## Despliegue actual
 
-En esta entrega no hay persistencia externa. La aplicacion se ejecuta como un servicio
-Spring Boot y mantiene los datos en memoria, igual que en la entrega anterior.
+La aplicacion se ejecuta como un servicio Spring Boot. En despliegue productivo se configura
+con PostgreSQL mediante variables de entorno de Spring (`SPRING_DATASOURCE_URL`,
+`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`). Para ejecucion local sin
+configuracion externa conserva H2 en memoria como fallback.
 
 ```mermaid
 flowchart TB
@@ -48,16 +57,20 @@ flowchart TB
   Internet --> Render["Render Web Service"]
   Render --> Container["Contenedor Docker"]
   Container --> App["Spring Boot\nar.edu.utn.dds.k3003.Application"]
-  App --> Memory["Listas en memoria"]
+  App --> DB["PostgreSQL"]
+  App --> Metrics["Actuator / Micrometer"]
 
-  App -. futura integracion .-> DonadoresURL["URL_DONADORES_Y_ENTIDADES"]
-  App -. futura integracion .-> LogisticaURL["URL_LOGISTICA"]
+  App --> DonadoresURL["DONADORES_Y_ENTIDADES_URL"]
+  App --> LogisticaURL["LOGISTICA_URL"]
 ```
 
 ## Notas de integracion
 
-- Para esta entrega se agregaron adaptadores locales de Donadores y Logistica que permiten
-  ejecutar el flujo basico sin tener los otros servicios desplegados.
-- La integracion real entre componentes queda preparada por las interfaces de catedra:
-  `FachadaDonadoresYEntidades` y `FachadaLogistica`.
-- Los datos se guardan en memoria; no hay base de datos ni ORM en esta entrega.
+- La integracion con Donadores y Entidades se configura con `DONADORES_Y_ENTIDADES_URL`.
+  El servicio consume `GET /donadores/{id}`, `GET /donadores/{id}/puede-donar` y
+  `POST /donadores/{id}/quejas`.
+- La integracion con Logistica se configura con `LOGISTICA_URL`. El servicio consume
+  `POST /depositos/{id}/donacion` para informar la donacion ingresada.
+- Si las URLs externas no estan configuradas, se usan adaptadores locales solo para facilitar
+  desarrollo aislado.
+- Se exponen metricas de altas y errores de integracion mediante Actuator/Micrometer.

@@ -2,6 +2,7 @@ package ar.edu.utn.dds.k3003.controllers;
 
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.ProductoDTO;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,11 @@ public class ProductosController {
   @PostMapping
   public ResponseEntity<ProductoDTO> agregarProducto(@RequestBody ProductoDTO productoDTO) {
     return ResponseEntity.status(HttpStatus.CREATED).body(fachada.agregarProducto(productoDTO));
+  }
+
+  @GetMapping
+  public ResponseEntity<List<ProductoDTO>> listarProductos() {
+    return ResponseEntity.ok(fachada.listarProductos());
   }
 
   @GetMapping("/{id}")

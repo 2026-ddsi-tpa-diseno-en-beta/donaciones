@@ -21,14 +21,19 @@ import ar.edu.utn.dds.k3003.repositories.InMemoryIdentificadoresRepo;
 import ar.edu.utn.dds.k3003.repositories.InMemoryProductosRepo;
 import ar.edu.utn.dds.k3003.repositories.ProductoMapper;
 import ar.edu.utn.dds.k3003.repositories.ProductosRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class Fachada implements FachadaDonaciones {
 
   private FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
@@ -40,6 +45,7 @@ public class Fachada implements FachadaDonaciones {
   private final DonacionesMapper donacionesMapper;
   private final ProductoMapper productoMapper;
   private final IdentificadorMapper identificadorMapper;
+  private final MeterRegistry meterRegistry;
 
   public Fachada() {
     this.donacionesRepository = new InMemoryDonacionesRepo();
@@ -48,6 +54,22 @@ public class Fachada implements FachadaDonaciones {
     this.donacionesMapper = new DonacionesMapper();
     this.productoMapper = new ProductoMapper();
     this.identificadorMapper = new IdentificadorMapper();
+    this.meterRegistry = null;
+  }
+
+  @Autowired
+  public Fachada(
+      DonacionesRepository donacionesRepository,
+      ProductosRepository productosRepository,
+      IdentificadoresRepository identificadoresRepository,
+      MeterRegistry meterRegistry) {
+    this.donacionesRepository = donacionesRepository;
+    this.productosRepository = productosRepository;
+    this.identificadoresRepository = identificadoresRepository;
+    this.donacionesMapper = new DonacionesMapper();
+    this.productoMapper = new ProductoMapper();
+    this.identificadorMapper = new IdentificadorMapper();
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -58,6 +80,12 @@ public class Fachada implements FachadaDonaciones {
   @Override
   public void setFachadaLogistica(FachadaLogistica fachadaLogistica) {
     this.fachadaLogistica = fachadaLogistica;
+  }
+
+  private void incrementarMetrica(String nombre) {
+    if (meterRegistry != null) {
+      Counter.builder(nombre).register(meterRegistry).increment();
+    }
   }
 
   @Override
@@ -76,12 +104,20 @@ public class Fachada implements FachadaDonaciones {
     try {
       donador = fachadaDonadoresYEntidades.buscarDonadorPorID(donacionDTO.donadorID());
     } catch (Exception e) {
+      incrementarMetrica("donatrack.donaciones.integracion.donadores.errores");
       throw new RuntimeException("El donador indicado no existe", e);
     }
     if (donador == null) {
       throw new RuntimeException("El donador indicado no existe");
     }
-    if (!Boolean.TRUE.equals(fachadaDonadoresYEntidades.puedeDonar(donacionDTO.donadorID()))) {
+    Boolean puedeDonar;
+    try {
+      puedeDonar = fachadaDonadoresYEntidades.puedeDonar(donacionDTO.donadorID());
+    } catch (Exception e) {
+      incrementarMetrica("donatrack.donaciones.integracion.donadores.errores");
+      throw new RuntimeException("No se pudo validar si el donador puede donar", e);
+    }
+    if (!Boolean.TRUE.equals(puedeDonar)) {
       throw new RuntimeException("El donador se encuentra baneado o no puede realizar donaciones");
     }
 
@@ -96,13 +132,19 @@ public class Fachada implements FachadaDonaciones {
     Donacion guardada = donacionesRepository.save(donacion);
 
     if (fachadaLogistica != null) {
-      fachadaLogistica.gestionarDonacion(
-          guardada.getDepositoId(),
-          guardada.getId(),
-          guardada.getProductoId(),
-          guardada.getCantidad());
+      try {
+        fachadaLogistica.gestionarDonacion(
+            guardada.getDepositoId(),
+            guardada.getId(),
+            guardada.getProductoId(),
+            guardada.getCantidad());
+      } catch (Exception e) {
+        incrementarMetrica("donatrack.donaciones.integracion.logistica.errores");
+        throw new RuntimeException("No se pudo registrar la donacion en Logistica", e);
+      }
     }
 
+    incrementarMetrica("donatrack.donaciones.registradas");
     return donacionesMapper.toDTO(guardada);
   }
 
@@ -115,6 +157,12 @@ public class Fachada implements FachadaDonaciones {
                 () -> new NoSuchElementException("No existe una donacion con ese ID"));
 
     return donacionesMapper.toDTO(donacion);
+  }
+
+  public List<DonacionDTO> listarDonaciones() {
+    return donacionesRepository.findAll().stream()
+        .map(donacionesMapper::toDTO)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -177,12 +225,14 @@ public class Fachada implements FachadaDonaciones {
               null, donacion.getId(), donacion.getDonadorId(), LocalDate.now(), descripcion);
       fachadaDonadoresYEntidades.agregarQueja(quejaDTO);
     } catch (Exception e) {
+      incrementarMetrica("donatrack.donaciones.integracion.donadores.errores");
       throw new RuntimeException("No se pudo registrar la queja en el sistema de Donadores", e);
     }
 
     donacion.cambiarEstado(EstadoDonacionEnum.CONQUEJA, descripcion);
     donacionesRepository.save(donacion);
 
+    incrementarMetrica("donatrack.donaciones.quejas.registradas");
     return donacionesMapper.toDTO(donacion);
   }
 
@@ -203,6 +253,7 @@ public class Fachada implements FachadaDonaciones {
     Producto producto = productoMapper.toModel(productoDTO, identificador);
     Producto guardado = productosRepository.save(producto);
 
+    incrementarMetrica("donatrack.donaciones.productos.registrados");
     return productoMapper.toDTO(guardado);
   }
 
@@ -214,6 +265,12 @@ public class Fachada implements FachadaDonaciones {
             .orElseThrow(() -> new NoSuchElementException("No existe un producto con ese ID"));
 
     return productoMapper.toDTO(producto);
+  }
+
+  public List<ProductoDTO> listarProductos() {
+    return productosRepository.findAll().stream()
+        .map(productoMapper::toDTO)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -229,6 +286,7 @@ public class Fachada implements FachadaDonaciones {
     Identificador identificador = identificadorMapper.toModel(identificadorDTO);
     Identificador guardado = identificadoresRepository.save(identificador);
 
+    incrementarMetrica("donatrack.donaciones.identificadores.registrados");
     return identificadorMapper.toDTO(guardado);
   }
 
@@ -241,5 +299,17 @@ public class Fachada implements FachadaDonaciones {
             .orElseThrow(() -> new NoSuchElementException("No existe un identificador con ese ID"));
 
     return identificadorMapper.toDTO(identificador);
+  }
+
+  public List<IdentificadorDTO> listarIdentificadores() {
+    return identificadoresRepository.findAll().stream()
+        .map(identificadorMapper::toDTO)
+        .collect(Collectors.toList());
+  }
+
+  public void limpiarDatos() {
+    donacionesRepository.deleteAll();
+    productosRepository.deleteAll();
+    identificadoresRepository.deleteAll();
   }
 }

@@ -1,21 +1,39 @@
 package ar.edu.utn.dds.k3003.model;
 
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.PrePersist;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
+@Entity
 @Getter
 @Setter
 public class Donacion {
+  @Id
   private String id;
+
   private String donadorId;
   private String depositoId;
   private String descripcion;
   private String productoId;
   private Integer cantidad;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "donacion_historial_estados", joinColumns = @JoinColumn(name = "donacion_id"))
+  @OrderColumn(name = "orden")
   private List<CambioEstadoDonacion> historialEstados;
+
+  protected Donacion() {}
 
   public Donacion(
       String donadorId,
@@ -30,6 +48,13 @@ public class Donacion {
     this.cantidad = cantidad;
     this.historialEstados = new ArrayList<>();
     this.agregarCambioDeEstado(EstadoDonacionEnum.INGRESADA, "Donacion recien ingresada");
+  }
+
+  @PrePersist
+  private void asignarIdSiHaceFalta() {
+    if (this.id == null) {
+      this.id = UUID.randomUUID().toString();
+    }
   }
 
   public void agregarCambioDeEstado(EstadoDonacionEnum nuevoEstado, String detalle) {

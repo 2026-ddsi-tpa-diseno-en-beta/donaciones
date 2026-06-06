@@ -38,9 +38,16 @@ public class DonacionesController {
   }
 
   @GetMapping
-  public ResponseEntity<List<DonacionDTO>> buscarPorDonadorYFechaInicio(
-      @RequestParam String donadorID,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+  public ResponseEntity<List<DonacionDTO>> listarOBuscarPorDonadorYFechaInicio(
+      @RequestParam(required = false) String donadorID,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+          LocalDate fecha) {
+    if (donadorID == null && fecha == null) {
+      return ResponseEntity.ok(fachada.listarDonaciones());
+    }
+    if (donadorID == null || fecha == null) {
+      throw new RuntimeException("Debe indicar donadorID y fecha para filtrar donaciones");
+    }
     return ResponseEntity.ok(fachada.buscarPorDonadorYFechaInicio(donadorID, fecha));
   }
 

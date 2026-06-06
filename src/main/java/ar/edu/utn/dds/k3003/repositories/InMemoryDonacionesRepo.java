@@ -37,4 +37,15 @@ public class InMemoryDonacionesRepo implements DonacionesRepository {
         .filter(d -> d.getDonadorId().equals(donadorId))
         .collect(Collectors.toList());
   }
+
+  @Override
+  public List<Donacion> findAll() {
+    return new ArrayList<>(this.donaciones);
+  }
+
+  @Override
+  public void deleteAll() {
+    this.donaciones.clear();
+    this.idSecuencial = 1;
+  }
 }

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: DonaTrack - Servicio de Donaciones
   version: 1.0.0
-  description: API implementada para la Entrega 2 del componente Donaciones.
+  description: API del componente Donaciones con persistencia, integracion y endpoints de apoyo para Entrega 3.
 servers:
   - url: http://localhost:8080
     description: Ejecucion local
@@ -34,17 +34,17 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
     get:
-      summary: Buscar donaciones por donador y fecha de inicio
-      operationId: buscarPorDonadorYFechaInicio
+      summary: Listar donaciones o buscar por donador y fecha de inicio
+      operationId: listarOBuscarPorDonadorYFechaInicio
       parameters:
         - name: donadorID
           in: query
-          required: true
+          required: false
           schema:
             type: string
         - name: fecha
           in: query
-          required: true
+          required: false
           schema:
             type: string
             format: date
@@ -135,6 +135,18 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
   /productos:
+    get:
+      summary: Listar productos
+      operationId: listarProductos
+      responses:
+        "200":
+          description: Productos encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductoDTO"
     post:
       summary: Agregar un producto
       operationId: agregarProducto
@@ -178,6 +190,18 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
   /identificadores:
+    get:
+      summary: Listar identificadores
+      operationId: listarIdentificadores
+      responses:
+        "200":
+          description: Identificadores encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentificadorDTO"
     post:
       summary: Agregar un identificador
       operationId: agregarIdentificador
@@ -218,6 +242,13 @@ paths:
                 $ref: "#/components/schemas/IdentificadorDTO"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/datos:
+    delete:
+      summary: Limpiar todos los datos del componente
+      operationId: limpiarDatos
+      responses:
+        "204":
+          description: Datos eliminados
 components:
   schemas:
     DonacionDTO:

@@ -31,6 +31,7 @@
 
 ### Donaciones
 - `POST /donaciones`
+- `GET /donaciones`
 - `GET /donaciones/{id}`
 - `GET /donaciones?donadorID={donadorID}&fecha={yyyy-MM-dd}`
 - `PATCH /donaciones/{id}/estado?estado={INGRESADA|ACEPTADA|CONQUEJA}`
@@ -38,11 +39,23 @@
 
 ### Productos
 - `POST /productos`
+- `GET /productos`
 - `GET /productos/{id}`
 
 ### Identificadores
 - `POST /identificadores`
+- `GET /identificadores`
 - `GET /identificadores/{id}`
+
+### Administracion
+- `DELETE /admin/datos`
+
+### Configuracion Entrega 3
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `DONADORES_Y_ENTIDADES_URL`
+- `LOGISTICA_URL`
 
 ---
 
