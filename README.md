@@ -34,13 +34,20 @@
 - `GET /donaciones`
 - `GET /donaciones/{id}`
 - `GET /donaciones?donadorID={donadorID}&fecha={yyyy-MM-dd}`
+- `GET /donaciones/search?donadorID={donadorID}&fecha={yyyy-MM-dd}`
 - `PATCH /donaciones/{id}/estado?estado={INGRESADA|ACEPTADA|CONQUEJA}`
+- `POST /donaciones/{id}/queja`
 - `POST /donaciones/{id}/quejas`
 
 ### Productos
 - `POST /productos`
 - `GET /productos`
 - `GET /productos/{id}`
+
+### Categorias
+- `POST /categorias`
+- `GET /categorias`
+- `GET /categorias/{id}`
 
 ### Identificadores
 - `POST /identificadores`

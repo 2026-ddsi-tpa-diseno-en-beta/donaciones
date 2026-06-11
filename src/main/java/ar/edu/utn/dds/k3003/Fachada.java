@@ -4,18 +4,23 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.ProductoDTO;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.CategoriaDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonaciones;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
+import ar.edu.utn.dds.k3003.model.Categoria;
 import ar.edu.utn.dds.k3003.model.Donacion;
 import ar.edu.utn.dds.k3003.model.Identificador;
 import ar.edu.utn.dds.k3003.model.Producto;
+import ar.edu.utn.dds.k3003.repositories.CategoriaMapper;
+import ar.edu.utn.dds.k3003.repositories.CategoriasRepository;
 import ar.edu.utn.dds.k3003.repositories.DonacionesMapper;
 import ar.edu.utn.dds.k3003.repositories.DonacionesRepository;
 import ar.edu.utn.dds.k3003.repositories.IdentificadorMapper;
 import ar.edu.utn.dds.k3003.repositories.IdentificadoresRepository;
+import ar.edu.utn.dds.k3003.repositories.InMemoryCategoriasRepo;
 import ar.edu.utn.dds.k3003.repositories.InMemoryDonacionesRepo;
 import ar.edu.utn.dds.k3003.repositories.InMemoryIdentificadoresRepo;
 import ar.edu.utn.dds.k3003.repositories.InMemoryProductosRepo;
@@ -42,18 +47,22 @@ public class Fachada implements FachadaDonaciones {
   private final DonacionesRepository donacionesRepository;
   private final ProductosRepository productosRepository;
   private final IdentificadoresRepository identificadoresRepository;
+  private final CategoriasRepository categoriasRepository;
   private final DonacionesMapper donacionesMapper;
   private final ProductoMapper productoMapper;
   private final IdentificadorMapper identificadorMapper;
+  private final CategoriaMapper categoriaMapper;
   private final MeterRegistry meterRegistry;
 
   public Fachada() {
     this.donacionesRepository = new InMemoryDonacionesRepo();
     this.productosRepository = new InMemoryProductosRepo();
     this.identificadoresRepository = new InMemoryIdentificadoresRepo();
+    this.categoriasRepository = new InMemoryCategoriasRepo();
     this.donacionesMapper = new DonacionesMapper();
     this.productoMapper = new ProductoMapper();
     this.identificadorMapper = new IdentificadorMapper();
+    this.categoriaMapper = new CategoriaMapper();
     this.meterRegistry = null;
   }
 
@@ -62,13 +71,16 @@ public class Fachada implements FachadaDonaciones {
       DonacionesRepository donacionesRepository,
       ProductosRepository productosRepository,
       IdentificadoresRepository identificadoresRepository,
+      CategoriasRepository categoriasRepository,
       MeterRegistry meterRegistry) {
     this.donacionesRepository = donacionesRepository;
     this.productosRepository = productosRepository;
     this.identificadoresRepository = identificadoresRepository;
+    this.categoriasRepository = categoriasRepository;
     this.donacionesMapper = new DonacionesMapper();
     this.productoMapper = new ProductoMapper();
     this.identificadorMapper = new IdentificadorMapper();
+    this.categoriaMapper = new CategoriaMapper();
     this.meterRegistry = meterRegistry;
   }
 
@@ -249,6 +261,11 @@ public class Fachada implements FachadaDonaciones {
         identificadoresRepository
             .findById(productoDTO.identificadorID())
             .orElseThrow(() -> new NoSuchElementException("No existe el identificador indicado"));
+    if (productoDTO.categoriaID() != null && !productoDTO.categoriaID().isBlank()) {
+      categoriasRepository
+          .findById(productoDTO.categoriaID())
+          .orElseThrow(() -> new NoSuchElementException("No existe la categoria indicada"));
+    }
 
     Producto producto = productoMapper.toModel(productoDTO, identificador);
     Producto guardado = productosRepository.save(producto);
@@ -307,9 +324,45 @@ public class Fachada implements FachadaDonaciones {
         .collect(Collectors.toList());
   }
 
+  public CategoriaDTO agregarCategoria(CategoriaDTO categoriaDTO) {
+    if (categoriaDTO == null) {
+      throw new RuntimeException("La categoria no puede ser nula");
+    }
+    if (categoriaDTO.id() != null && categoriasRepository.findById(categoriaDTO.id()).isPresent()) {
+      throw new RuntimeException("La categoria ya existe en el sistema");
+    }
+    if (categoriaDTO.subcategoriaID() != null
+        && !categoriaDTO.subcategoriaID().isBlank()
+        && categoriasRepository.findById(categoriaDTO.subcategoriaID()).isEmpty()) {
+      throw new RuntimeException("La subcategoria indicada no existe");
+    }
+
+    Categoria categoria = categoriaMapper.toModel(categoriaDTO);
+    Categoria guardada = categoriasRepository.save(categoria);
+
+    incrementarMetrica("donatrack.donaciones.categorias.registradas");
+    return categoriaMapper.toDTO(guardada);
+  }
+
+  public CategoriaDTO buscarCategoriaPorID(String categoriaID) throws NoSuchElementException {
+    Categoria categoria =
+        categoriasRepository
+            .findById(categoriaID)
+            .orElseThrow(() -> new NoSuchElementException("No existe una categoria con ese ID"));
+
+    return categoriaMapper.toDTO(categoria);
+  }
+
+  public List<CategoriaDTO> listarCategorias() {
+    return categoriasRepository.findAll().stream()
+        .map(categoriaMapper::toDTO)
+        .collect(Collectors.toList());
+  }
+
   public void limpiarDatos() {
     donacionesRepository.deleteAll();
     productosRepository.deleteAll();
     identificadoresRepository.deleteAll();
+    categoriasRepository.deleteAll();
   }
 }

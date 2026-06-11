@@ -79,6 +79,34 @@ paths:
                 $ref: "#/components/schemas/DonacionDTO"
         "404":
           $ref: "#/components/responses/NotFound"
+  /donaciones/search:
+    get:
+      summary: Buscar donaciones por donador y fecha de inicio
+      operationId: buscarPorDonadorYFechaInicio
+      parameters:
+        - name: donadorID
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2026-05-16"
+      responses:
+        "200":
+          description: Donaciones encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /donaciones/{id}/estado:
     patch:
       summary: Cambiar el estado de una donacion
@@ -97,6 +125,35 @@ paths:
       responses:
         "200":
           description: Donacion actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /donaciones/{id}/queja:
+    post:
+      summary: Registrar una queja sobre una donacion aceptada
+      operationId: registrarQuejaEnDonacionCompatible
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuejaRequest"
+            example:
+              descripcion: "Producto en mal estado"
+      responses:
+        "200":
+          description: Donacion actualizada a CONQUEJA
           content:
             application/json:
               schema:
@@ -158,8 +215,8 @@ paths:
               $ref: "#/components/schemas/ProductoDTO"
             example:
               nombre: "Arroz blanco"
-              descripcion: "paquete de arroz"
-              categoriaID: null
+              descripcion: "paquete de arroz largo"
+              categoriaID: "1"
               identificadorID: "1"
       responses:
         "201":
@@ -242,6 +299,60 @@ paths:
                 $ref: "#/components/schemas/IdentificadorDTO"
         "404":
           $ref: "#/components/responses/NotFound"
+  /categorias:
+    get:
+      summary: Listar categorias
+      operationId: listarCategorias
+      responses:
+        "200":
+          description: Categorias encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoriaDTO"
+    post:
+      summary: Agregar una categoria
+      operationId: agregarCategoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaDTO"
+            example:
+              nombre: "Alimentos"
+              descripcion: "Productos alimenticios"
+              subcategoriaID: null
+      responses:
+        "201":
+          description: Categoria creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaDTO"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /categorias/{id}:
+    get:
+      summary: Buscar una categoria por ID
+      operationId: buscarCategoriaPorID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Categoria encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaDTO"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/datos:
     delete:
       summary: Limpiar todos los datos del componente
@@ -295,6 +406,22 @@ components:
         - nombre
         - descripcion
         - identificadorID
+    CategoriaDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        nombre:
+          type: string
+        descripcion:
+          type: string
+          nullable: true
+        subcategoriaID:
+          type: string
+          nullable: true
+      required:
+        - nombre
     IdentificadorDTO:
       type: object
       properties:

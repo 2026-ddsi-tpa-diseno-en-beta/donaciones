@@ -51,6 +51,13 @@ public class DonacionesController {
     return ResponseEntity.ok(fachada.buscarPorDonadorYFechaInicio(donadorID, fecha));
   }
 
+  @GetMapping("/search")
+  public ResponseEntity<List<DonacionDTO>> buscarPorDonadorYFechaInicio(
+      @RequestParam String donadorID,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+    return ResponseEntity.ok(fachada.buscarPorDonadorYFechaInicio(donadorID, fecha));
+  }
+
   @PatchMapping("/{id}/estado")
   public ResponseEntity<DonacionDTO> cambiarEstado(
       @PathVariable("id") String donacionID, @RequestParam EstadoDonacionEnum estado) {
@@ -62,6 +69,12 @@ public class DonacionesController {
       @PathVariable("id") String donacionID, @RequestBody QuejaRequest quejaRequest) {
     return ResponseEntity.ok(
         fachada.registrarQuejaEnDonacion(donacionID, quejaRequest.descripcion()));
+  }
+
+  @PostMapping("/{id}/queja")
+  public ResponseEntity<DonacionDTO> registrarQuejaCompatible(
+      @PathVariable("id") String donacionID, @RequestBody QuejaRequest quejaRequest) {
+    return registrarQueja(donacionID, quejaRequest);
   }
 
   public record QuejaRequest(String descripcion) {}

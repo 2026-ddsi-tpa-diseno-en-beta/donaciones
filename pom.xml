@@ -166,7 +166,7 @@
         <version>0.8.12</version>
         <configuration>
           <excludes>
-            <exclude>ar/edu/utn/dds/k3003/Application.class</exclude>
+            <exclude>ar/edu/utn/dds/k3003/app/Application.class</exclude>
             <exclude>ar/edu/utn/dds/k3003/config/**</exclude>
             <exclude>ar/edu/utn/dds/k3003/exceptions/**</exclude>
           </excludes>

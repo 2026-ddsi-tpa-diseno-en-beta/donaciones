@@ -13,10 +13,10 @@ flowchart LR
   end
 
   subgraph Donaciones["Servicio de Donaciones"]
-    Controllers["Controllers REST\n/donaciones\n/productos\n/identificadores"]
+    Controllers["Controllers REST\n/donaciones\n/productos\n/categorias\n/identificadores"]
     Fachada["FachadaDonaciones\nFachada"]
-    Dominio["Dominio\nDonacion\nProducto\nIdentificador"]
-    Repos["Repositorios JPA\nDonaciones\nProductos\nIdentificadores"]
+    Dominio["Dominio\nDonacion\nProducto\nCategoria\nIdentificador"]
+    Repos["Repositorios JPA\nDonaciones\nProductos\nCategorias\nIdentificadores"]
     Mappers["Mappers\nDTO a Dominio"]
     Metrics["Micrometer / Actuator"]
   end
@@ -56,7 +56,7 @@ flowchart TB
   User["Postman / navegador"] --> Internet["HTTPS"]
   Internet --> Render["Render Web Service"]
   Render --> Container["Contenedor Docker"]
-  Container --> App["Spring Boot\nar.edu.utn.dds.k3003.Application"]
+  Container --> App["Spring Boot\nar.edu.utn.dds.k3003.app.Application"]
   App --> DB["PostgreSQL"]
   App --> Metrics["Actuator / Micrometer"]
 
@@ -74,3 +74,4 @@ flowchart TB
 - Si las URLs externas no estan configuradas, se usan adaptadores locales solo para facilitar
   desarrollo aislado.
 - Se exponen metricas de altas y errores de integracion mediante Actuator/Micrometer.
+- Las categorias se cargan previamente por `/categorias` y se validan antes de crear productos.

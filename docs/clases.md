@@ -37,6 +37,14 @@ class Producto {
   -String identificadorId
 }
 
+class Categoria {
+  <<Entity>>
+  -String id
+  -String nombre
+  -String descripcion
+  -String subcategoriaId
+}
+
 class Identificador {
   <<Entity>>
   -String id
@@ -61,7 +69,9 @@ class TipoIdentificadorEnum {
 Donacion "1" *-- "1..*" CambioEstadoDonacion : historial
 Donacion --> EstadoDonacionEnum : estado actual
 CambioEstadoDonacion --> EstadoDonacionEnum : estado
+Producto --> Categoria : categoria existente
 Producto --> Identificador : se valida con
+Categoria --> Categoria : subcategoria existente
 Identificador --> TipoIdentificadorEnum : tipo
 ```
 
@@ -71,7 +81,9 @@ Identificador --> TipoIdentificadorEnum : tipo
 - Una donacion solo puede pasar de `INGRESADA` a `ACEPTADA`.
 - Una donacion solo puede pasar de `ACEPTADA` a `CONQUEJA`.
 - Un producto debe asociarse a un identificador previamente creado.
+- Un producto debe asociarse a una categoria previamente creada.
+- Si una categoria referencia una subcategoria, esa subcategoria debe existir previamente.
 - Si el identificador es `CODIGODEBARRAS`, la descripcion del producto debe tener al menos 3 palabras.
 - Si el identificador es `QR`, el nombre del producto debe tener una cantidad par de letras.
-- `Donacion`, `Producto` e `Identificador` se persisten con JPA.
+- `Donacion`, `Producto`, `Categoria` e `Identificador` se persisten con JPA.
 - El historial de estados de la donacion se persiste como coleccion embebida.

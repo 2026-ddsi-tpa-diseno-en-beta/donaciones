@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ar.edu.utn.dds.k3003.Fachada;
+import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.CategoriaDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
@@ -37,6 +38,7 @@ class FachadaDonacionesTest {
   DonadorDTO donadorEjemplo;
   DonacionDTO donacionEjemplo;
   ProductoDTO productoEjemplo;
+  CategoriaDTO categoriaEjemplo;
 
   @BeforeEach
   void setUp() {
@@ -59,10 +61,16 @@ class FachadaDonacionesTest {
     IdentificadorDTO identificadorEjemplo =
         fachada.agregarIdentificador(
             new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+    categoriaEjemplo =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Alimentos", "Productos alimenticios", null));
     productoEjemplo =
         fachada.agregarProducto(
             new ProductoDTO(
-                null, "Arroz blanco", "paquete de arroz", null, identificadorEjemplo.id()));
+                null,
+                "Arroz blanco",
+                "paquete de arroz",
+                categoriaEjemplo.id(),
+                identificadorEjemplo.id()));
 
     donacionEjemplo =
         new DonacionDTO(
@@ -281,11 +289,13 @@ class FachadaDonacionesTest {
     IdentificadorDTO identificador =
         fachada.agregarIdentificador(
             new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Vestimenta", "Ropa", null));
 
     ProductoDTO registrado =
         fachada.agregarProducto(
             new ProductoDTO(
-                null, "Remera", "remera roja grande", "vestimenta", identificador.id()));
+                null, "Remera", "remera roja grande", categoria.id(), identificador.id()));
 
     ProductoDTO encontrado = fachada.buscarProductoPorID(registrado.id());
 
@@ -299,12 +309,14 @@ class FachadaDonacionesTest {
     IdentificadorDTO identificador =
         fachada.agregarIdentificador(
             new IdentificadorDTO(null, TipoIdentificadorEnum.CODIGODEBARRAS, "codigo"));
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Vestimenta", "Ropa", null));
 
     Assertions.assertThrows(
         RuntimeException.class,
         () ->
             fachada.agregarProducto(
-                new ProductoDTO(null, "Remera", "remera", "vestimenta", identificador.id())));
+                new ProductoDTO(null, "Remera", "remera", categoria.id(), identificador.id())));
   }
 
   @Test
@@ -312,10 +324,12 @@ class FachadaDonacionesTest {
     IdentificadorDTO identificador =
         fachada.agregarIdentificador(
             new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Mobiliario", "Muebles", null));
 
     ProductoDTO registrado =
         fachada.agregarProducto(
-            new ProductoDTO(null, "Mesa", "mesa de comedor", "mobiliario", identificador.id()));
+            new ProductoDTO(null, "Mesa", "mesa de comedor", categoria.id(), identificador.id()));
 
     ProductoDTO encontrado = fachada.buscarProductoPorID(registrado.id());
 
@@ -328,21 +342,63 @@ class FachadaDonacionesTest {
     IdentificadorDTO identificador =
         fachada.agregarIdentificador(
             new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Mobiliario", "Muebles", null));
 
     Assertions.assertThrows(
         RuntimeException.class,
         () ->
             fachada.agregarProducto(
                 new ProductoDTO(
-                    null, "Silla", "silla de comedor", "mobiliario", identificador.id())));
+                    null, "Silla", "silla de comedor", categoria.id(), identificador.id())));
   }
 
   @Test
   void agregarProductoSinIdentificadorPrevioFalla() {
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Mobiliario", "Muebles", null));
+
     Assertions.assertThrows(
         RuntimeException.class,
         () ->
             fachada.agregarProducto(
-                new ProductoDTO(null, "Mesa", "mesa de comedor", "mobiliario", "inexistente")));
+                new ProductoDTO(null, "Mesa", "mesa de comedor", categoria.id(), "inexistente")));
+  }
+
+  @Test
+  void agregarProductoSinCategoriaPreviaFalla() {
+    IdentificadorDTO identificador =
+        fachada.agregarIdentificador(
+            new IdentificadorDTO(null, TipoIdentificadorEnum.QR, "codigo QR"));
+
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            fachada.agregarProducto(
+                new ProductoDTO(null, "Mesa", "mesa de comedor", "inexistente", identificador.id())));
+  }
+
+  @Test
+  void agregarCategoriaConSubcategoriaInexistenteFalla() {
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            fachada.agregarCategoria(
+                new CategoriaDTO(null, "Alimentos", "Productos alimenticios", "inexistente")));
+  }
+
+  @Test
+  void agregarCategoriaConSubcategoriaPreviaPermiteBuscarla() {
+    CategoriaDTO subcategoria =
+        fachada.agregarCategoria(new CategoriaDTO(null, "Fideos", "Pastas secas", null));
+
+    CategoriaDTO categoria =
+        fachada.agregarCategoria(
+            new CategoriaDTO(null, "Alimentos", "Productos alimenticios", subcategoria.id()));
+
+    CategoriaDTO encontrada = fachada.buscarCategoriaPorID(categoria.id());
+
+    Assertions.assertEquals(categoria.id(), encontrada.id());
+    Assertions.assertEquals(subcategoria.id(), encontrada.subcategoriaID());
   }
 }
