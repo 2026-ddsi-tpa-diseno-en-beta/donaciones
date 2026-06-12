@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: API del componente Donaciones con persistencia, integracion y endpoints de apoyo para Entrega 3.
 servers:
+  - url: https://donaciones-xouj.onrender.com
+    description: Render
   - url: http://localhost:8080
     description: Ejecucion local
 paths:

@@ -14,9 +14,9 @@
 ---
 
 ## ⚙️ Link al despliegue en Render
-- https://entrega-2-fbremberg.onrender.com
-- Swagger UI: https://entrega-2-fbremberg.onrender.com/swagger-ui/index.html
-- OpenAPI JSON: https://entrega-2-fbremberg.onrender.com/v3/api-docs
+- https://donaciones-xouj.onrender.com
+- Swagger UI: https://donaciones-xouj.onrender.com/swagger-ui/index.html
+- OpenAPI JSON: https://donaciones-xouj.onrender.com/v3/api-docs
 
 ---
 
