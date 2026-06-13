@@ -46,12 +46,21 @@ public class FachadaDonadoresYEntidadesHttp implements FachadaDonadoresYEntidade
 
   @Override
   public QuejaDTO agregarQueja(QuejaDTO quejaDTO) throws NoSuchElementException {
-    return restClient
+    QuejaRequest request =
+        new QuejaRequest(
+            quejaDTO.donacionID(),
+            quejaDTO.donadorID(),
+            quejaDTO.fecha() != null ? quejaDTO.fecha().toString() : null,
+            quejaDTO.descripcion());
+
+    restClient
         .post()
         .uri("/donadores/{id}/quejas", quejaDTO.donadorID())
-        .body(quejaDTO)
+        .body(request)
         .retrieve()
-        .body(QuejaDTO.class);
+        .toBodilessEntity();
+
+    return quejaDTO;
   }
 
   @Override
@@ -98,4 +107,7 @@ public class FachadaDonadoresYEntidadesHttp implements FachadaDonadoresYEntidade
 
   @Override
   public void setFachadaIncentivos(FachadaIncentivos fachadaIncentivos) {}
+
+  private record QuejaRequest(
+      String donacionID, String donadorID, String fecha, String descripcion) {}
 }
