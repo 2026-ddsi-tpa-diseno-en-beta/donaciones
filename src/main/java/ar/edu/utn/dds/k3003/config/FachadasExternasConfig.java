@@ -3,6 +3,8 @@ package ar.edu.utn.dds.k3003.config;
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.integrations.FachadaDonadoresYEntidadesHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaDonadoresYEntidadesLocal;
+import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosHttp;
+import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosLocal;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaLocal;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +16,8 @@ public class FachadasExternasConfig {
   public FachadasExternasConfig(
       Fachada fachada,
       @Value("${donatrack.donadores-y-entidades.url:}") String donadoresYEntidadesUrl,
-      @Value("${donatrack.logistica.url:}") String logisticaUrl) {
+      @Value("${donatrack.logistica.url:}") String logisticaUrl,
+      @Value("${donatrack.incentivos.url:}") String incentivosUrl) {
     fachada.setFachadaDonadoresYEntidades(
         tieneUrl(donadoresYEntidadesUrl)
             ? new FachadaDonadoresYEntidadesHttp(donadoresYEntidadesUrl)
@@ -23,6 +26,10 @@ public class FachadasExternasConfig {
         tieneUrl(logisticaUrl)
             ? new FachadaLogisticaHttp(logisticaUrl)
             : new FachadaLogisticaLocal());
+    fachada.setFachadaIncentivos(
+        tieneUrl(incentivosUrl)
+            ? new FachadaIncentivosHttp(incentivosUrl)
+            : new FachadaIncentivosLocal());
   }
 
   private Boolean tieneUrl(String url) {

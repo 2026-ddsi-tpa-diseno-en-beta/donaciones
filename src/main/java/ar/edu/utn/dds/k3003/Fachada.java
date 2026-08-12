@@ -9,6 +9,7 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonaciones;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
+import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaIncentivos;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
 import ar.edu.utn.dds.k3003.model.Categoria;
 import ar.edu.utn.dds.k3003.model.Donacion;
@@ -43,6 +44,7 @@ public class Fachada implements FachadaDonaciones {
 
   private FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
   private FachadaLogistica fachadaLogistica;
+  private FachadaIncentivos fachadaIncentivos;
 
   private final DonacionesRepository donacionesRepository;
   private final ProductosRepository productosRepository;
@@ -92,6 +94,10 @@ public class Fachada implements FachadaDonaciones {
   @Override
   public void setFachadaLogistica(FachadaLogistica fachadaLogistica) {
     this.fachadaLogistica = fachadaLogistica;
+  }
+
+  public void setFachadaIncentivos(FachadaIncentivos fachadaIncentivos) {
+    this.fachadaIncentivos = fachadaIncentivos;
   }
 
   private void incrementarMetrica(String nombre) {
@@ -188,6 +194,10 @@ public class Fachada implements FachadaDonaciones {
     donacion.cambiarEstado(estado, "Cambio de estado reportado por Logistica/Sistema");
     donacionesRepository.save(donacion);
 
+    if (EstadoDonacionEnum.ACEPTADA.equals(estado)) {
+      incrementarMetrica("donatrack.donaciones.aceptadas");
+    }
+
     return donacionesMapper.toDTO(donacion);
   }
 
@@ -245,6 +255,15 @@ public class Fachada implements FachadaDonaciones {
     donacionesRepository.save(donacion);
 
     incrementarMetrica("donatrack.donaciones.quejas.registradas");
+
+    if (fachadaIncentivos != null) {
+      try {
+        fachadaIncentivos.procesarDonador(donacion.getDonadorId());
+      } catch (Exception e) {
+        incrementarMetrica("donatrack.donaciones.integracion.incentivos.errores");
+      }
+    }
+
     return donacionesMapper.toDTO(donacion);
   }
 
