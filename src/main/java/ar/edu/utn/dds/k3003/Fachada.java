@@ -9,7 +9,6 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonaciones;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
-import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaIncentivos;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
 import ar.edu.utn.dds.k3003.exceptions.DonacionRechazadaException;
 import ar.edu.utn.dds.k3003.exceptions.IntegracionException;
@@ -38,6 +37,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
@@ -53,8 +53,6 @@ public class Fachada implements FachadaDonaciones {
 
   private FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
   private FachadaLogistica fachadaLogistica;
-  private FachadaIncentivos fachadaIncentivos;
-
   private final DonacionesRepository donacionesRepository;
   private final ProductosRepository productosRepository;
   private final IdentificadoresRepository identificadoresRepository;
@@ -101,10 +99,6 @@ public class Fachada implements FachadaDonaciones {
   @Override
   public void setFachadaLogistica(FachadaLogistica fachada) {
     this.fachadaLogistica = fachada;
-  }
-
-  public void setFachadaIncentivos(FachadaIncentivos fachada) {
-    this.fachadaIncentivos = fachada;
   }
 
   // ---------------------------------------------------------------- metricas
@@ -154,8 +148,8 @@ public class Fachada implements FachadaDonaciones {
     if (donacionDTO.cantidad() == null || donacionDTO.cantidad() <= 0) {
       throw new IllegalArgumentException("La cantidad donada debe ser mayor a cero");
     }
-    if (donacionDTO.id() != null && donacionesRepository.findById(donacionDTO.id()).isPresent()) {
-      throw new IllegalArgumentException("La donacion ya existe en el sistema");
+    if (donacionDTO.id() != null && !donacionDTO.id().isBlank()) {
+      throw new IllegalArgumentException("El ID de la donacion lo genera el modulo");
     }
     if (productosRepository.findById(donacionDTO.productoID()).isEmpty()) {
       throw new NoSuchElementException("El producto indicado no existe");
@@ -240,7 +234,7 @@ public class Fachada implements FachadaDonaciones {
   }
 
   public List<DonacionDTO> listarDonaciones() {
-    return donacionesRepository.findAll().stream()
+    return ordenarCronologicamente(donacionesRepository.findAll()).stream()
         .map(donacionesMapper::toDTO)
         .collect(Collectors.toList());
   }
@@ -285,10 +279,18 @@ public class Fachada implements FachadaDonaciones {
       return List.of();
     }
 
-    return donacionesDelDonador.stream()
+    return ordenarCronologicamente(donacionesDelDonador).stream()
         .filter(d -> fecha == null || !d.getFechaIngreso().isBefore(fecha))
         .map(donacionesMapper::toDTO)
         .collect(Collectors.toList());
+  }
+
+  private List<Donacion> ordenarCronologicamente(List<Donacion> donaciones) {
+    return donaciones.stream()
+        .sorted(
+            Comparator.comparing(Donacion::getFechaIngresoExacta)
+                .thenComparing(Donacion::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+        .toList();
   }
 
   @Override
@@ -314,16 +316,6 @@ public class Fachada implements FachadaDonaciones {
 
     incrementarMetrica("donatrack.donaciones.quejas.registradas");
 
-    // La queja puede hacerle perder el progreso de una mision al donador (Entrega 4). Si Incentivos
-    // no responde no se revierte la queja: es una notificacion, no parte de la transaccion.
-    if (fachadaIncentivos != null) {
-      try {
-        fachadaIncentivos.procesarDonador(donacion.getDonadorId());
-      } catch (Exception e) {
-        incrementarMetrica("donatrack.donaciones.integracion.incentivos.errores");
-      }
-    }
-
     return donacionesMapper.toDTO(donacion);
   }
 
@@ -342,8 +334,8 @@ public class Fachada implements FachadaDonaciones {
     if (productoDTO == null) {
       throw new IllegalArgumentException("El producto no puede ser nulo");
     }
-    if (productoDTO.id() != null && productosRepository.findById(productoDTO.id()).isPresent()) {
-      throw new IllegalArgumentException("El producto ya existe en el sistema");
+    if (productoDTO.id() != null && !productoDTO.id().isBlank()) {
+      throw new IllegalArgumentException("El ID del producto lo genera el modulo");
     }
 
     Identificador identificador = buscarIdentificadorOpcional(productoDTO.identificadorID());
@@ -403,15 +395,29 @@ public class Fachada implements FachadaDonaciones {
    * la subcategoria tiene que colgar efectivamente de la categoria declarada.
    */
   private void validarCategoriaYSubcategoria(String categoriaID, String subcategoriaID) {
-    Categoria categoria = null;
-    if (categoriaID != null && !categoriaID.isBlank()) {
-      categoria =
-          categoriasRepository
-              .findById(categoriaID)
-              .orElseThrow(() -> new NoSuchElementException("No existe la categoria indicada"));
+    if (categoriaID == null || categoriaID.isBlank()) {
+      // La fachada base de la catedra admite productos sin categoria. La API HTTP no: su request
+      // exige categoriaID para que toda alta real quede clasificada.
+      if (subcategoriaID != null && !subcategoriaID.isBlank()) {
+        throw new IllegalArgumentException(
+            "No se puede indicar una subcategoria sin indicar su categoria");
+      }
+      return;
     }
 
+    Categoria categoria =
+        categoriasRepository
+            .findById(categoriaID)
+            .orElseThrow(() -> new NoSuchElementException("No existe la categoria indicada"));
+
+    List<Categoria> subcategorias =
+        categoriasRepository.buscarSubcategoriasDe(categoria.getId());
+
     if (subcategoriaID == null || subcategoriaID.isBlank()) {
+      if (!subcategorias.isEmpty()) {
+        throw new IllegalArgumentException(
+            "La categoria indicada tiene subcategorias: debe seleccionar una");
+      }
       return;
     }
 
@@ -424,7 +430,7 @@ public class Fachada implements FachadaDonaciones {
       throw new IllegalArgumentException(
           "'" + subcategoria.getNombre() + "' es una categoria raiz, no una subcategoria");
     }
-    if (categoria != null && !subcategoria.getCategoriaPadreId().equals(categoria.getId())) {
+    if (!subcategoria.getCategoriaPadreId().equals(categoria.getId())) {
       throw new IllegalArgumentException(
           "La subcategoria '"
               + subcategoria.getNombre()
@@ -451,6 +457,10 @@ public class Fachada implements FachadaDonaciones {
         .collect(Collectors.toList());
   }
 
+  public List<Producto> listarProductosDelDominio() {
+    return productosRepository.findAll();
+  }
+
   // --------------------------------------------------------- identificadores
 
   @Override
@@ -458,9 +468,8 @@ public class Fachada implements FachadaDonaciones {
     if (identificadorDTO == null) {
       throw new IllegalArgumentException("El identificador no puede ser nulo");
     }
-    if (identificadorDTO.id() != null
-        && identificadoresRepository.findById(identificadorDTO.id()).isPresent()) {
-      throw new IllegalArgumentException("El identificador ya existe en el sistema");
+    if (identificadorDTO.id() != null && !identificadorDTO.id().isBlank()) {
+      throw new IllegalArgumentException("El ID del identificador lo genera el modulo");
     }
 
     Identificador identificador = identificadorMapper.toModel(identificadorDTO);
@@ -536,15 +545,23 @@ public class Fachada implements FachadaDonaciones {
     if (categoriaDTO == null) {
       throw new IllegalArgumentException("La categoria no puede ser nula");
     }
-    if (categoriaDTO.id() != null && categoriasRepository.findById(categoriaDTO.id()).isPresent()) {
-      throw new IllegalArgumentException("La categoria ya existe en el sistema");
+    if (categoriaDTO.id() != null && !categoriaDTO.id().isBlank()) {
+      throw new IllegalArgumentException("El ID de la categoria lo genera el modulo");
     }
 
     Categoria categoria = categoriaMapper.toModel(categoriaDTO);
     categoria.setId(generadorDeIds.siguiente("categoria"));
 
     if (categoriaPadreID != null && !categoriaPadreID.isBlank()) {
-      categoria.colgarDe(buscarCategoria(categoriaPadreID));
+      Categoria padre = buscarCategoria(categoriaPadreID);
+      boolean tieneProductosDirectos =
+          productosRepository.buscarPorCategoria(padre.getId()).stream()
+              .anyMatch(producto -> producto.getSubcategoriaId() == null);
+      if (tieneProductosDirectos) {
+        throw new RecursoEnUsoException(
+            "No se puede agregar una subcategoria: la categoria clasifica productos directamente");
+      }
+      categoria.colgarDe(padre);
     }
 
     Categoria guardada = categoriasRepository.save(categoria);

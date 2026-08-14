@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.app.Application;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -180,6 +181,98 @@ class DonacionesApiTest {
   }
 
   @Test
+  @DisplayName("CONQUEJA solo se alcanza por el endpoint que registra la queja")
+  void conQuejaRequiereRegistrarLaQueja() throws Exception {
+    MvcResult creada =
+        mockMvc
+            .perform(post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
+            .andReturn();
+    String id = objectMapper.readTree(creada.getResponse().getContentAsString()).get("id").asText();
+
+    mockMvc
+        .perform(patch("/donaciones/{id}/estado", id).param("estado", "ACEPTADA"))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(patch("/donaciones/{id}/estado", id).param("estado", "CONQUEJA"))
+        .andExpect(status().isBadRequest());
+    mockMvc
+        .perform(
+            post("/donaciones/{id}/quejas", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"descripcion\":\"producto defectuoso\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.estado").value("CONQUEJA"));
+  }
+
+  @Test
+  @DisplayName("Los endpoints de alta no aceptan IDs definidos por el cliente")
+  void altaRechazaIdDelCliente() throws Exception {
+    mockMvc
+        .perform(
+            post("/productos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"id":"99","nombre":"Arroz","descripcion":"un kilo de arroz",
+                     "categoriaID":"%s","subcategoriaID":"%s"}"""
+                        .formatted(categoriaId, subcategoriaId)))
+        .andExpect(status().isBadRequest());
+
+    mockMvc
+        .perform(
+            post("/categorias")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"id":"99","nombre":"Muebles","descripcion":"mobiliario"}"""))
+        .andExpect(status().isBadRequest());
+
+    mockMvc
+        .perform(
+            post("/identificadores")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"id":"99","tipo":"QR","descripcion":"codigo interno"}"""))
+        .andExpect(status().isBadRequest());
+
+    mockMvc
+        .perform(
+            post("/donaciones")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(donacion(5).replaceFirst("\\{", "{\"id\":\"99\",")))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("La busqueda consolidada devuelve donaciones en orden cronologico")
+  void busquedaConsolidadaYOrdenada() throws Exception {
+    String primero = idDe(post("/donaciones"), donacion(2));
+    String segundo = idDe(post("/donaciones"), donacion(3));
+
+    mockMvc
+        .perform(
+            get("/donaciones")
+                .param("donadorID", "donador1")
+                .param("fecha", LocalDate.now().toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value(primero))
+        .andExpect(jsonPath("$[1].id").value(segundo));
+  }
+
+  @Test
+  @DisplayName("Las rutas redundantes de busqueda y queja ya no forman parte del contrato")
+  void rutasRedundantesEliminadas() throws Exception {
+    mockMvc.perform(get("/donaciones/search")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(
+            post("/donaciones/1/queja")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"descripcion\":\"queja\"}"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
   @DisplayName("Se puede crear un producto sin identificador y la subcategoria viaja en la respuesta")
   void productoSinIdentificador() throws Exception {
     mockMvc
@@ -187,6 +280,48 @@ class DonacionesApiTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.identificadorID").doesNotExist())
         .andExpect(jsonPath("$.subcategoriaID").value(subcategoriaId));
+  }
+
+  @Test
+  @DisplayName("Una categoria hoja puede clasificar directamente un producto")
+  void productoEnCategoriaSinSubcategorias() throws Exception {
+    String categoriaHoja =
+        idDe(post("/categorias"), "{\"nombre\":\"Mobiliario\",\"descripcion\":\"muebles\"}");
+
+    mockMvc
+        .perform(
+            post("/productos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"nombre":"Mesa","descripcion":"mesa de comedor","categoriaID":"%s"}"""
+                        .formatted(categoriaHoja)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.categoriaID").value(categoriaHoja))
+        .andExpect(jsonPath("$.subcategoriaID").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("Una categoria con subcategorias exige seleccionar una")
+  void productoEnCategoriaPadreRequiereSubcategoria() throws Exception {
+    mockMvc
+        .perform(
+            post("/productos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"nombre":"Arroz","descripcion":"un kilo de arroz","categoriaID":"%s"}"""
+                        .formatted(categoriaId)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("El listado conserva la subcategoria en la representacion del producto")
+  void listadoDeProductosEsConsistente() throws Exception {
+    mockMvc
+        .perform(get("/productos"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].subcategoriaID").value(subcategoriaId));
   }
 
   @Test
@@ -198,6 +333,34 @@ class DonacionesApiTest {
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].esSubcategoria").value(true))
         .andExpect(jsonPath("$[0].categoriaPadreID").value(categoriaId));
+  }
+
+  @Test
+  @DisplayName("Modificar una categoria no acepta cambios de jerarquia implicitos")
+  void modificarCategoriaNoMueveJerarquia() throws Exception {
+    mockMvc
+        .perform(
+            put("/categorias/{id}", categoriaId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"nombre":"Alimentos","descripcion":"comida","categoriaPadreID":"99"}"""))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("Swagger muestra IDs generados, codigos reales y solo las rutas canonicas")
+  void swaggerReflejaElContrato() throws Exception {
+    mockMvc
+        .perform(get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.components.schemas.DonacionDTO.properties.id.readOnly").value(true))
+        .andExpect(
+            jsonPath("$.components.schemas.DonacionDTO.properties.estado.readOnly").value(true))
+        .andExpect(jsonPath("$.components.schemas.ProductoRequest.properties.id").doesNotExist())
+        .andExpect(jsonPath("$.paths['/productos'].post.responses['201']").exists())
+        .andExpect(jsonPath("$.paths['/donaciones/search']").doesNotExist())
+        .andExpect(jsonPath("$.paths['/donaciones/{id}/queja']").doesNotExist());
   }
 
   @Test

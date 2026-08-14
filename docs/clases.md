@@ -110,11 +110,11 @@ Agregar un tipo nuevo es agregar una constante, sin tocar código existente.
 descripción y *opcionalmente* un identificador. Un producto sin código de barras ni QR es válido;
 si lo tiene, se valida.
 
-**La subcategoría es la unidad mínima de asignación.** `Categoria` se relaciona consigo misma por
+**La clasificación usa la unidad mínima disponible.** `Categoria` se relaciona consigo misma por
 `categoriaPadreId`, lo que permite N subcategorías por categoría (Alimentos → fideos, arroz,
-legumbres). `Producto` guarda **ambas**: su categoría y su subcategoría. Al dar de alta un producto
-se valida que la subcategoría exista, que sea efectivamente una subcategoría y que pertenezca a la
-categoría declarada.
+legumbres). Una categoría hoja puede clasificar productos directamente. Cuando una categoría
+tiene hijas, `Producto` guarda **ambas** y se valida que la subcategoría elegida exista y le
+pertenezca. Agregar la primera subcategoría exige migrar antes los productos directos.
 
 > Limitación conocida: el `ProductoDTO` de la cátedra no tiene campo de subcategoría y el
 > `CategoriaDTO` modela una sola subcategoría por categoría. Por eso ese dato viaja por los

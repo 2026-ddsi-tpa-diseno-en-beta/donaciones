@@ -2,7 +2,10 @@ package ar.edu.utn.dds.k3003.controllers;
 
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.controllers.requests.CategoriaRequest;
+import ar.edu.utn.dds.k3003.controllers.requests.CategoriaUpdateRequest;
 import ar.edu.utn.dds.k3003.controllers.responses.CategoriaResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +29,10 @@ public class CategoriasController {
   }
 
   @PostMapping
-  public ResponseEntity<CategoriaResponse> agregarCategoria(@RequestBody CategoriaRequest request) {
-    String id = fachada.agregarCategoria(request.toDTO(), request.padreEfectivo()).id();
+  @ApiResponse(responseCode = "201", description = "Categoria creada")
+  public ResponseEntity<CategoriaResponse> agregarCategoria(
+      @Valid @RequestBody CategoriaRequest request) {
+    String id = fachada.agregarCategoria(request.toDTO(), request.categoriaPadreID()).id();
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(CategoriaResponse.desde(fachada.verCategoria(id)));
   }
@@ -52,12 +57,13 @@ public class CategoriasController {
 
   @PutMapping("/{id}")
   public ResponseEntity<CategoriaResponse> modificarCategoria(
-      @PathVariable("id") String id, @RequestBody CategoriaRequest request) {
+      @PathVariable("id") String id, @Valid @RequestBody CategoriaUpdateRequest request) {
     fachada.modificarCategoria(id, request.toDTO());
     return ResponseEntity.ok(CategoriaResponse.desde(fachada.verCategoria(id)));
   }
 
   @DeleteMapping("/{id}")
+  @ApiResponse(responseCode = "204", description = "Categoria eliminada")
   public ResponseEntity<Void> eliminarCategoria(@PathVariable("id") String id) {
     fachada.eliminarCategoria(id);
     return ResponseEntity.noContent().build();

@@ -2,7 +2,6 @@ package ar.edu.utn.dds.k3003.model;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,7 +17,6 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.DonadorDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donadoresYEntidades.QuejaDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.logistica.DepositoDTO;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaDonadoresYEntidades;
-import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaIncentivos;
 import ar.edu.utn.dds.k3003.catedra.fachadas.FachadaLogistica;
 import java.time.LocalDate;
 import java.util.List;
@@ -36,8 +34,6 @@ class FachadaDonacionesTest {
 
   @Mock FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
   @Mock FachadaLogistica fachadaLogistica;
-  @Mock FachadaIncentivos fachadaIncentivos;
-
   DonadorDTO donadorEjemplo;
   DonacionDTO donacionEjemplo;
   ProductoDTO productoEjemplo;
@@ -48,7 +44,6 @@ class FachadaDonacionesTest {
     fachada = new Fachada();
     fachada.setFachadaDonadoresYEntidades(fachadaDonadoresYEntidades);
     fachada.setFachadaLogistica(fachadaLogistica);
-    fachada.setFachadaIncentivos(fachadaIncentivos);
 
     donadorEjemplo =
         new DonadorDTO(
@@ -389,47 +384,6 @@ class FachadaDonacionesTest {
         () ->
             fachada.agregarCategoria(
                 new CategoriaDTO(null, "Alimentos", "Productos alimenticios", "inexistente")));
-  }
-
-  @Test
-  void registrarQuejaLlamaProcesarDonadorEnIncentivos() {
-    stubDonadorHabilitado();
-    DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
-    fachada.cambiarEstadoDeDonacion(registrada.id(), EstadoDonacionEnum.ACEPTADA);
-    when(fachadaDonadoresYEntidades.agregarQueja(any()))
-        .thenReturn(new QuejaDTO("q1", registrada.id(), "donador1", LocalDate.now(), "mal estado"));
-
-    fachada.registrarQuejaEnDonacion(registrada.id(), "mal estado");
-
-    verify(fachadaIncentivos, times(1)).procesarDonador("donador1");
-  }
-
-  @Test
-  void registrarQuejaConErrorEnIncentivosNoBloqueaElFlujo() {
-    stubDonadorHabilitado();
-    DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
-    fachada.cambiarEstadoDeDonacion(registrada.id(), EstadoDonacionEnum.ACEPTADA);
-    when(fachadaDonadoresYEntidades.agregarQueja(any()))
-        .thenReturn(new QuejaDTO("q1", registrada.id(), "donador1", LocalDate.now(), "mal estado"));
-    doThrow(new RuntimeException("incentivos no disponible"))
-        .when(fachadaIncentivos).procesarDonador(any());
-
-    DonacionDTO resultado = fachada.registrarQuejaEnDonacion(registrada.id(), "mal estado");
-
-    Assertions.assertEquals(EstadoDonacionEnum.CONQUEJA, resultado.estado());
-    verify(fachadaIncentivos, times(1)).procesarDonador("donador1");
-  }
-
-  @Test
-  void registrarQuejaEnDonacionNoAceptadaNoLlamaIncentivos() {
-    stubDonadorHabilitado();
-    DonacionDTO registrada = fachada.registrarDonacion(donacionEjemplo);
-
-    Assertions.assertThrows(
-        RuntimeException.class,
-        () -> fachada.registrarQuejaEnDonacion(registrada.id(), "mal estado"));
-
-    verify(fachadaIncentivos, times(0)).procesarDonador(any());
   }
 
   @Test

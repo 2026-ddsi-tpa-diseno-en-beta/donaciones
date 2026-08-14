@@ -10,7 +10,6 @@ DTOs de la cátedra.
 flowchart LR
   subgraph Clientes["Clientes"]
     Postman["Postman / Swagger UI"]
-    Bot["Bot de Telegram"]
   end
 
   subgraph Donaciones["Servicio de Donaciones (Render)"]
@@ -30,7 +29,6 @@ flowchart LR
   INC["Incentivos"]
 
   Postman --> Controllers
-  Bot --> Controllers
   Controllers --> Fachada
   Fachada --> Dominio
   Fachada --> Mappers
@@ -41,10 +39,8 @@ flowchart LR
 
   Fachada -->|"GET /donadores/{id}<br>GET /donadores/{id}/puede-donar<br>POST /donadores/{id}/quejas"| DYE
   Fachada -->|"POST /depositos/{id}/donacion"| LOG
-  Fachada -.->|"POST /procesamiento/{id}<br>(opcional)"| INC
-
   LOG -.->|"PATCH /donaciones/{id}/estado"| Controllers
-  INC -.->|"GET /donaciones/search<br>GET /productos/{id}"| Controllers
+  INC -.->|"GET /donaciones?donadorID&fecha<br>GET /productos/{id}"| Controllers
   DYE -.->|"GET /productos/{id}"| Controllers
 ```
 
@@ -56,14 +52,13 @@ Donadores y Entidades valida el producto al registrar una necesidad (Entrega 4).
 
 ```mermaid
 flowchart TB
-  User["Postman / navegador / bot"] -->|HTTPS| Render["Render — Web Service"]
+  User["Postman / navegador"] -->|HTTPS| Render["Render — Web Service"]
   Render --> Container["Contenedor Docker<br>(Dockerfile multi-stage, puerto 8080)"]
   Container --> App["Spring Boot<br>ar.edu.utn.dds.k3003.app.Application"]
   App --> DB[("Render PostgreSQL")]
   App --> DD["Datadog<br>(métricas vía Micrometer)"]
   App --> DYE["Donadores y Entidades<br>DONADORES_Y_ENTIDADES_URL"]
   App --> LOG["Logística<br>LOGISTICA_URL"]
-  App -.-> INC["Incentivos<br>INCENTIVOS_URL (opcional)"]
 ```
 
 ## Configuración
@@ -78,25 +73,12 @@ obligatorias**: si falta alguna, la aplicación no arranca (ver más abajo).
 | `SPRING_DATASOURCE_PASSWORD` | sí en prod | Password de la base. |
 | `DONADORES_Y_ENTIDADES_URL` | **sí** | Base URL del componente de Donadores y Entidades. |
 | `LOGISTICA_URL` | **sí** | Base URL del componente de Logística. |
-| `INCENTIVOS_URL` | no | Base URL de Incentivos. **Opcional**, ver abajo. |
 | `PORT` | no | Puerto del servidor. Default `8080`. |
 | `DATADOG_ENABLED` | no | Activa el export de métricas. Default `false`. |
 | `DATADOG_API_KEY` | si `DATADOG_ENABLED=true` | API key de Datadog. |
 | `DATADOG_URI` | no | Endpoint de Datadog. Default `https://api.us5.datadoghq.com`. |
 | `DD_ENV` | no | Tag de ambiente en las métricas. Default `prod`. |
 | `JPA_SHOW_SQL` | no | Loguea el SQL. Default `false`. |
-
-### Por qué `INCENTIVOS_URL` es opcional
-
-El enunciado define dos interacciones salientes para este componente: hacia **Donadores y
-Entidades** (verificar el donador, consultar si puede donar, registrar la queja) y hacia
-**Logística** (guardar la donación en el depósito). No define una interacción
-`Donaciones → Incentivos`.
-
-Avisarle a Incentivos cuando se registra una queja es un agregado propio, para que la pérdida de
-progreso de una misión se note en el momento en vez de esperar a que corra su cron-job, que es el
-mecanismo que la Entrega 4 sí define. Sin esa variable el flujo funciona igual y la aplicación
-arranca sin problemas.
 
 ### Por qué la aplicación no arranca sin las otras dos URLs
 

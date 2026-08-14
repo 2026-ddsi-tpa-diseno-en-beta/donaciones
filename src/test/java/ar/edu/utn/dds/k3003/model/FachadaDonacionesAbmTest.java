@@ -116,6 +116,17 @@ class FachadaDonacionesAbmTest {
   }
 
   @Test
+  @DisplayName("Una categoria usada directamente no puede convertirse luego en categoria padre")
+  void categoriaDirectaNoPuedeRecibirSubcategorias() {
+    CategoriaDTO mobiliario = categoria("Mobiliario");
+    fachada.agregarProducto(
+        new ProductoDTO(null, "Mesa", "una mesa", mobiliario.id(), null));
+
+    assertThrows(
+        RecursoEnUsoException.class, () -> subcategoria("Mesas", mobiliario.id()));
+  }
+
+  @Test
   @DisplayName("No se acepta una subcategoria que no pertenece a la categoria declarada")
   void subcategoriaDeOtraCategoria() {
     CategoriaDTO alimentos = categoria("Alimentos");
@@ -321,5 +332,21 @@ class FachadaDonacionesAbmTest {
     assertEquals("1", primero.id());
     assertEquals("2", segundo.id());
     assertEquals(1L, Long.parseLong(primero.id()));
+  }
+
+  @Test
+  @DisplayName("El componente rechaza IDs de alta definidos por el cliente")
+  void idsDeAltaSonPropiedadDelComponente() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> fachada.agregarProducto(new ProductoDTO("99", "Mesa", "una mesa", null, null)));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            fachada.agregarIdentificador(
+                new IdentificadorDTO("99", TipoIdentificadorEnum.QR, "codigo")));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> fachada.agregarCategoria(new CategoriaDTO("99", "Muebles", "desc", null)));
   }
 }

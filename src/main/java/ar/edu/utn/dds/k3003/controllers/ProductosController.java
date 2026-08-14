@@ -4,6 +4,8 @@ import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.ProductoDTO;
 import ar.edu.utn.dds.k3003.controllers.requests.ProductoRequest;
 import ar.edu.utn.dds.k3003.controllers.responses.ProductoResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,15 +29,18 @@ public class ProductosController {
   }
 
   @PostMapping
-  public ResponseEntity<ProductoResponse> agregarProducto(@RequestBody ProductoRequest request) {
+  @ApiResponse(responseCode = "201", description = "Producto creado")
+  public ResponseEntity<ProductoResponse> agregarProducto(
+      @Valid @RequestBody ProductoRequest request) {
     ProductoDTO creado = fachada.agregarProducto(request.toDTO(), request.subcategoriaID());
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(ProductoResponse.desde(fachada.verProducto(creado.id())));
   }
 
   @GetMapping
-  public ResponseEntity<List<ProductoDTO>> listarProductos() {
-    return ResponseEntity.ok(fachada.listarProductos());
+  public ResponseEntity<List<ProductoResponse>> listarProductos() {
+    return ResponseEntity.ok(
+        fachada.listarProductosDelDominio().stream().map(ProductoResponse::desde).toList());
   }
 
   @GetMapping("/{id}")
@@ -45,12 +50,13 @@ public class ProductosController {
 
   @PutMapping("/{id}")
   public ResponseEntity<ProductoResponse> modificarProducto(
-      @PathVariable("id") String id, @RequestBody ProductoRequest request) {
+      @PathVariable("id") String id, @Valid @RequestBody ProductoRequest request) {
     fachada.modificarProducto(id, request.toDTO(), request.subcategoriaID());
     return ResponseEntity.ok(ProductoResponse.desde(fachada.verProducto(id)));
   }
 
   @DeleteMapping("/{id}")
+  @ApiResponse(responseCode = "204", description = "Producto eliminado")
   public ResponseEntity<Void> eliminarProducto(@PathVariable("id") String id) {
     fachada.eliminarProducto(id);
     return ResponseEntity.noContent().build();

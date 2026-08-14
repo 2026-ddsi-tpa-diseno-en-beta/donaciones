@@ -1,250 +1,22 @@
 # Especificacion OpenAPI del Servicio de Donaciones.
-# Generado desde la aplicacion (/v3/api-docs) para que no se desincronice del codigo.
 # Swagger UI: https://donaciones-xouj.onrender.com/swagger-ui/index.html
-#
-# Endpoints no modificables por consigna: POST /donaciones, GET /donaciones,
-# GET /donaciones/{id}. Se mantienen con ruta y body originales.
 
 openapi: "3.1.0"
 info:
   title: "DonaTrack - Servicio de Donaciones"
-  version: "1.0.0"
-  description: "API del componente de Donaciones. Los endpoints POST/GET /donaciones y GET /donaciones/{id} son no modificables por consigna."
+  version: "1.1.0"
+  description: "API del componente de Donaciones. Los IDs de las altas son generados por el servidor."
 servers:
   - url: "https://donaciones-xouj.onrender.com"
     description: Render
   - url: "http://localhost:8080"
     description: Local
 paths:
-  "/productos/{id}":
-    get:
-      tags:
-        - productos-controller
-      operationId: buscarProductoPorID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/ProductoResponse"
-    put:
-      tags:
-        - productos-controller
-      operationId: modificarProducto
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/ProductoRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/ProductoResponse"
-    delete:
-      tags:
-        - productos-controller
-      operationId: eliminarProducto
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-  "/identificadores/{id}":
-    get:
-      tags:
-        - identificadores-controller
-      operationId: buscarIdentificadorPorID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/IdentificadorDTO"
-    put:
-      tags:
-        - identificadores-controller
-      operationId: modificarIdentificador
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/IdentificadorDTO"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/IdentificadorDTO"
-    delete:
-      tags:
-        - identificadores-controller
-      operationId: eliminarIdentificador
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-  "/categorias/{id}":
-    get:
-      tags:
-        - categorias-controller
-      operationId: buscarCategoriaPorID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/CategoriaResponse"
-    put:
-      tags:
-        - categorias-controller
-      operationId: modificarCategoria
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/CategoriaRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/CategoriaResponse"
-    delete:
-      tags:
-        - categorias-controller
-      operationId: eliminarCategoria
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-  "/productos":
-    get:
-      tags:
-        - productos-controller
-      operationId: listarProductos
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/ProductoDTO"
-    post:
-      tags:
-        - productos-controller
-      operationId: agregarProducto
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/ProductoRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/ProductoResponse"
-  "/identificadores":
-    get:
-      tags:
-        - identificadores-controller
-      operationId: listarIdentificadores
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/IdentificadorDTO"
-    post:
-      tags:
-        - identificadores-controller
-      operationId: agregarIdentificador
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/IdentificadorDTO"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/IdentificadorDTO"
   "/donaciones":
     get:
-      tags:
-        - donaciones-controller
-      operationId: listarOBuscarPorDonadorYFechaInicio
+      tags: [donaciones]
+      summary: Lista donaciones o filtra por donador y fecha
+      description: "Sin parametros lista todas. Para filtrar se deben enviar juntos donadorID y fecha. El resultado se ordena cronologicamente."
       parameters:
         - name: donadorID
           in: query
@@ -259,316 +31,348 @@ paths:
             format: date
       responses:
         "200":
-          description: OK
+          description: Donaciones ordenadas cronologicamente
           content:
-            "*/*":
+            application/json:
               schema:
                 type: array
                 items:
-                  "$ref": "#/components/schemas/DonacionDTO"
+                  $ref: "#/components/schemas/DonacionDTO"
     post:
-      tags:
-        - donaciones-controller
-      operationId: registrarDonacion
+      tags: [donaciones]
+      summary: Registra una donacion
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              "$ref": "#/components/schemas/DonacionDTO"
-        required: true
+              $ref: "#/components/schemas/DonacionDTO"
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Donacion registrada
           content:
-            "*/*":
+            application/json:
               schema:
-                "$ref": "#/components/schemas/DonacionDTO"
-  "/donaciones/{id}/quejas":
-    post:
-      tags:
-        - donaciones-controller
-      operationId: registrarQueja
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/QuejaRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/DonacionDTO"
-  "/donaciones/{id}/queja":
-    post:
-      tags:
-        - donaciones-controller
-      operationId: registrarQuejaCompatible
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/QuejaRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/DonacionDTO"
-  "/categorias":
+                $ref: "#/components/schemas/DonacionDTO"
+  "/donaciones/{id}":
     get:
-      tags:
-        - categorias-controller
-      operationId: listarCategorias
+      tags: [donaciones]
+      summary: Busca una donacion por ID
+      parameters:
+        - $ref: "#/components/parameters/Id"
       responses:
         "200":
-          description: OK
+          description: Donacion encontrada
           content:
-            "*/*":
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionDTO"
+  "/donaciones/{id}/historial":
+    get:
+      tags: [donaciones]
+      summary: Obtiene el historial de estados
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Historial completo
+          content:
+            application/json:
               schema:
                 type: array
                 items:
-                  "$ref": "#/components/schemas/CategoriaResponse"
-    post:
-      tags:
-        - categorias-controller
-      operationId: agregarCategoria
-      requestBody:
-        content:
-          application/json:
-            schema:
-              "$ref": "#/components/schemas/CategoriaRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                "$ref": "#/components/schemas/CategoriaResponse"
+                  $ref: "#/components/schemas/CambioEstadoResponse"
   "/donaciones/{id}/estado":
     patch:
-      tags:
-        - donaciones-controller
-      operationId: cambiarEstado
+      tags: [donaciones]
+      summary: Confirma la aceptacion informada por Logistica
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Id"
         - name: estado
           in: query
           required: true
           schema:
             type: string
-            enum:
-              - INGRESADA
-              - ACEPTADA
-              - CONQUEJA
+            enum: [ACEPTADA]
       responses:
         "200":
-          description: OK
+          description: Donacion aceptada
           content:
-            "*/*":
+            application/json:
               schema:
-                "$ref": "#/components/schemas/DonacionDTO"
-  "/donaciones/{id}":
-    get:
-      tags:
-        - donaciones-controller
-      operationId: buscarDonacionPorID
+                $ref: "#/components/schemas/DonacionDTO"
+  "/donaciones/{id}/quejas":
+    post:
+      tags: [donaciones]
+      summary: Registra una queja sobre una donacion aceptada
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuejaRequest"
       responses:
         "200":
-          description: OK
+          description: Queja registrada y donacion actualizada
           content:
-            "*/*":
+            application/json:
               schema:
-                "$ref": "#/components/schemas/DonacionDTO"
-  "/donaciones/{id}/historial":
+                $ref: "#/components/schemas/DonacionDTO"
+  "/productos":
     get:
-      tags:
-        - donaciones-controller
-      operationId: historialDeEstados
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+      tags: [productos]
+      summary: Lista productos
       responses:
         "200":
-          description: OK
+          description: Productos con su clasificacion completa
           content:
-            "*/*":
+            application/json:
               schema:
                 type: array
                 items:
-                  "$ref": "#/components/schemas/CambioEstadoResponse"
-  "/donaciones/search":
+                  $ref: "#/components/schemas/ProductoResponse"
+    post:
+      tags: [productos]
+      summary: Crea un producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoRequest"
+      responses:
+        "201":
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductoResponse"
+  "/productos/{id}":
     get:
-      tags:
-        - donaciones-controller
-      operationId: buscarPorDonadorYFechaInicio
+      tags: [productos]
+      summary: Busca un producto por ID
       parameters:
-        - name: donadorID
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: fecha
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
+        - $ref: "#/components/parameters/Id"
       responses:
         "200":
-          description: OK
+          description: Producto encontrado
           content:
-            "*/*":
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductoResponse"
+    put:
+      tags: [productos]
+      summary: Modifica un producto
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoRequest"
+      responses:
+        "200":
+          description: Producto modificado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductoResponse"
+    delete:
+      tags: [productos]
+      summary: Elimina un producto sin donaciones asociadas
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Producto eliminado
+  "/categorias":
+    get:
+      tags: [categorias]
+      summary: Lista categorias
+      responses:
+        "200":
+          description: Categorias
+          content:
+            application/json:
               schema:
                 type: array
                 items:
-                  "$ref": "#/components/schemas/DonacionDTO"
+                  $ref: "#/components/schemas/CategoriaResponse"
+    post:
+      tags: [categorias]
+      summary: Crea una categoria o subcategoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaRequest"
+      responses:
+        "201":
+          description: Categoria creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaResponse"
+  "/categorias/{id}":
+    get:
+      tags: [categorias]
+      summary: Busca una categoria por ID
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Categoria encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaResponse"
+    put:
+      tags: [categorias]
+      summary: Modifica nombre y descripcion
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaUpdateRequest"
+      responses:
+        "200":
+          description: Categoria modificada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoriaResponse"
+    delete:
+      tags: [categorias]
+      summary: Elimina una categoria sin referencias
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Categoria eliminada
   "/categorias/{id}/subcategorias":
     get:
-      tags:
-        - categorias-controller
-      operationId: listarSubcategorias
+      tags: [categorias]
+      summary: Lista las subcategorias de una categoria
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Id"
       responses:
         "200":
-          description: OK
+          description: Subcategorias
           content:
-            "*/*":
+            application/json:
               schema:
                 type: array
                 items:
-                  "$ref": "#/components/schemas/CategoriaResponse"
+                  $ref: "#/components/schemas/CategoriaResponse"
+  "/identificadores":
+    get:
+      tags: [identificadores]
+      summary: Lista identificadores
+      responses:
+        "200":
+          description: Identificadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentificadorDTO"
+    post:
+      tags: [identificadores]
+      summary: Crea un identificador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentificadorRequest"
+      responses:
+        "201":
+          description: Identificador creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificadorDTO"
+  "/identificadores/{id}":
+    get:
+      tags: [identificadores]
+      summary: Busca un identificador por ID
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Identificador encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificadorDTO"
+    put:
+      tags: [identificadores]
+      summary: Modifica un identificador
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentificadorRequest"
+      responses:
+        "200":
+          description: Identificador modificado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentificadorDTO"
+    delete:
+      tags: [identificadores]
+      summary: Elimina un identificador sin referencias
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Identificador eliminado
   "/admin/estado":
     get:
-      tags:
-        - admin-controller
-      operationId: estado
+      tags: [administracion]
+      summary: Consulta conteos y estado de integraciones
       responses:
         "200":
-          description: OK
+          description: Estado del modulo
           content:
-            "*/*":
+            application/json:
               schema:
                 type: object
-                additionalProperties: {}
+                additionalProperties: true
   "/admin/datos":
     delete:
-      tags:
-        - admin-controller
-      operationId: limpiarDatos
+      tags: [administracion]
+      summary: Elimina los datos del modulo
       responses:
-        "200":
-          description: OK
+        "204":
+          description: Datos eliminados
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
-    ProductoRequest:
-      type: object
-      properties:
-        id:
-          type: string
-        nombre:
-          type: string
-        descripcion:
-          type: string
-        categoriaID:
-          type: string
-        subcategoriaID:
-          type: string
-        identificadorID:
-          type: string
-    ProductoResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        nombre:
-          type: string
-        descripcion:
-          type: string
-        categoriaID:
-          type: string
-        subcategoriaID:
-          type: string
-        identificadorID:
-          type: string
-    IdentificadorDTO:
-      type: object
-      properties:
-        id:
-          type: string
-        tipo:
-          type: string
-          enum:
-            - QR
-            - CODIGODEBARRAS
-        descripcion:
-          type: string
-    CategoriaRequest:
-      type: object
-      properties:
-        id:
-          type: string
-        nombre:
-          type: string
-        descripcion:
-          type: string
-        categoriaPadreID:
-          type: string
-        subcategoriaID:
-          type: string
-    CategoriaResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        nombre:
-          type: string
-        descripcion:
-          type: string
-        categoriaPadreID:
-          type: string
-        esSubcategoria:
-          type: boolean
     DonacionDTO:
       type: object
       properties:
         id:
           type: string
+          readOnly: true
         donadorID:
           type: string
         depositoID:
@@ -580,37 +384,119 @@ components:
         cantidad:
           type: integer
           format: int32
+          minimum: 1
         estado:
           type: string
-          enum:
-            - INGRESADA
-            - ACEPTADA
-            - CONQUEJA
+          readOnly: true
+          enum: [INGRESADA, ACEPTADA, CONQUEJA]
     QuejaRequest:
       type: object
+      required: [descripcion]
       properties:
         descripcion:
           type: string
-    ProductoDTO:
+          minLength: 1
+    CambioEstadoResponse:
+      type: object
+      properties:
+        estado:
+          type: string
+          enum: [INGRESADA, ACEPTADA, CONQUEJA]
+        fechaCambio:
+          type: string
+          format: date-time
+        detalle:
+          type: string
+    ProductoRequest:
+      type: object
+      required: [nombre, descripcion, categoriaID]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+        descripcion:
+          type: string
+          minLength: 1
+        categoriaID:
+          type: string
+          minLength: 1
+        subcategoriaID:
+          type: string
+          description: "Obligatoria solo cuando la categoria tiene subcategorias."
+        identificadorID:
+          type: string
+          description: Opcional
+    ProductoResponse:
       type: object
       properties:
         id:
           type: string
+          readOnly: true
         nombre:
           type: string
         descripcion:
           type: string
         categoriaID:
           type: string
+        subcategoriaID:
+          type: string
         identificadorID:
           type: string
-    CambioEstadoResponse:
+    CategoriaRequest:
+      type: object
+      required: [nombre, descripcion]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+        descripcion:
+          type: string
+          minLength: 1
+        categoriaPadreID:
+          type: string
+          description: "Si se informa, la nueva categoria se crea como subcategoria."
+    CategoriaUpdateRequest:
+      type: object
+      required: [nombre, descripcion]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+        descripcion:
+          type: string
+          minLength: 1
+    CategoriaResponse:
       type: object
       properties:
-        estado:
+        id:
           type: string
-        fechaCambio:
+          readOnly: true
+        nombre:
           type: string
-          format: date-time
-        detalle:
+        descripcion:
+          type: string
+        categoriaPadreID:
+          type: string
+        esSubcategoria:
+          type: boolean
+    IdentificadorRequest:
+      type: object
+      required: [tipo, descripcion]
+      properties:
+        tipo:
+          type: string
+          enum: [QR, CODIGODEBARRAS]
+        descripcion:
+          type: string
+          minLength: 1
+    IdentificadorDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        tipo:
+          type: string
+          enum: [QR, CODIGODEBARRAS]
+        descripcion:
           type: string

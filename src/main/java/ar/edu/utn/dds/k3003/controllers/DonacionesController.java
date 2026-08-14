@@ -4,6 +4,9 @@ import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
 import ar.edu.utn.dds.k3003.controllers.responses.CambioEstadoResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,7 +32,11 @@ public class DonacionesController {
   }
 
   @PostMapping
+  @ApiResponse(responseCode = "201", description = "Donacion registrada")
   public ResponseEntity<DonacionDTO> registrarDonacion(@RequestBody DonacionDTO donacionDTO) {
+    if (donacionDTO != null && donacionDTO.id() != null && !donacionDTO.id().isBlank()) {
+      throw new IllegalArgumentException("El ID de la donacion lo genera el modulo");
+    }
     return ResponseEntity.status(HttpStatus.CREATED).body(fachada.registrarDonacion(donacionDTO));
   }
 
@@ -65,31 +72,22 @@ public class DonacionesController {
             .toList());
   }
 
-  @GetMapping("/search")
-  public ResponseEntity<List<DonacionDTO>> buscarPorDonadorYFechaInicio(
-      @RequestParam String donadorID,
-      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-    return ResponseEntity.ok(fachada.buscarPorDonadorYFechaInicio(donadorID, fecha));
-  }
-
   @PatchMapping("/{id}/estado")
   public ResponseEntity<DonacionDTO> cambiarEstado(
       @PathVariable("id") String donacionID, @RequestParam EstadoDonacionEnum estado) {
+    if (!EstadoDonacionEnum.ACEPTADA.equals(estado)) {
+      throw new IllegalArgumentException(
+          "Este endpoint solo permite confirmar la aceptacion desde Logistica");
+    }
     return ResponseEntity.ok(fachada.cambiarEstadoDeDonacion(donacionID, estado));
   }
 
   @PostMapping("/{id}/quejas")
   public ResponseEntity<DonacionDTO> registrarQueja(
-      @PathVariable("id") String donacionID, @RequestBody QuejaRequest quejaRequest) {
+      @PathVariable("id") String donacionID, @Valid @RequestBody QuejaRequest quejaRequest) {
     return ResponseEntity.ok(
         fachada.registrarQuejaEnDonacion(donacionID, quejaRequest.descripcion()));
   }
 
-  @PostMapping("/{id}/queja")
-  public ResponseEntity<DonacionDTO> registrarQuejaCompatible(
-      @PathVariable("id") String donacionID, @RequestBody QuejaRequest quejaRequest) {
-    return registrarQueja(donacionID, quejaRequest);
-  }
-
-  public record QuejaRequest(String descripcion) {}
+  public record QuejaRequest(@NotBlank String descripcion) {}
 }

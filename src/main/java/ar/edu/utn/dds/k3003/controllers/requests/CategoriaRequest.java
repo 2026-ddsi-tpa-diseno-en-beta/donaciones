@@ -1,23 +1,16 @@
 package ar.edu.utn.dds.k3003.controllers.requests;
 
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.CategoriaDTO;
+import jakarta.validation.constraints.NotBlank;
 
 /**
- * Body de alta/modificacion de categoria. {@code categoriaPadreID} es la forma natural de armar el
- * arbol ("creo 'fideos' colgando de 'Alimentos'"); {@code subcategoriaID} se mantiene por
- * compatibilidad con el DTO de la catedra.
+ * Body de alta de categoria. {@code categoriaPadreID} es la forma natural de armar el arbol
+ * ("creo 'fideos' colgando de 'Alimentos'"). El ID lo genera el modulo.
  */
 public record CategoriaRequest(
-    String id, String nombre, String descripcion, String categoriaPadreID, String subcategoriaID) {
+    @NotBlank String nombre, @NotBlank String descripcion, String categoriaPadreID) {
 
   public CategoriaDTO toDTO() {
-    return new CategoriaDTO(id, nombre, descripcion, categoriaPadreID);
-  }
-
-  public String padreEfectivo() {
-    if (categoriaPadreID != null && !categoriaPadreID.isBlank()) {
-      return categoriaPadreID;
-    }
-    return subcategoriaID;
+    return new CategoriaDTO(null, nombre, descripcion, categoriaPadreID);
   }
 }

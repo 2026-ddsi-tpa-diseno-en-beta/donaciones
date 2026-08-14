@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.PrePersist;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -100,5 +101,9 @@ public class Donacion {
 
   public LocalDate getFechaIngreso() {
     return historialEstados.get(0).getFechaCambio().toLocalDate();
+  }
+
+  public LocalDateTime getFechaIngresoExacta() {
+    return historialEstados.get(0).getFechaCambio();
   }
 }

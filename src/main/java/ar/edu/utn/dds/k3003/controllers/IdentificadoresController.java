@@ -2,6 +2,9 @@ package ar.edu.utn.dds.k3003.controllers;
 
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
+import ar.edu.utn.dds.k3003.controllers.requests.IdentificadorRequest;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,10 +28,11 @@ public class IdentificadoresController {
   }
 
   @PostMapping
+  @ApiResponse(responseCode = "201", description = "Identificador creado")
   public ResponseEntity<IdentificadorDTO> agregarIdentificador(
-      @RequestBody IdentificadorDTO identificadorDTO) {
+      @Valid @RequestBody IdentificadorRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(fachada.agregarIdentificador(identificadorDTO));
+        .body(fachada.agregarIdentificador(request.toDTO()));
   }
 
   @GetMapping
@@ -43,11 +47,12 @@ public class IdentificadoresController {
 
   @PutMapping("/{id}")
   public ResponseEntity<IdentificadorDTO> modificarIdentificador(
-      @PathVariable("id") String id, @RequestBody IdentificadorDTO identificadorDTO) {
-    return ResponseEntity.ok(fachada.modificarIdentificador(id, identificadorDTO));
+      @PathVariable("id") String id, @Valid @RequestBody IdentificadorRequest request) {
+    return ResponseEntity.ok(fachada.modificarIdentificador(id, request.toDTO()));
   }
 
   @DeleteMapping("/{id}")
+  @ApiResponse(responseCode = "204", description = "Identificador eliminado")
   public ResponseEntity<Void> eliminarIdentificador(@PathVariable("id") String id) {
     fachada.eliminarIdentificador(id);
     return ResponseEntity.noContent().build();

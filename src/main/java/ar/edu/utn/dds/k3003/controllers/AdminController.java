@@ -2,6 +2,7 @@ package ar.edu.utn.dds.k3003.controllers;
 
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.config.EstadoIntegraciones;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,6 +22,7 @@ public class AdminController {
   }
 
   @DeleteMapping("/datos")
+  @ApiResponse(responseCode = "204", description = "Datos eliminados")
   public ResponseEntity<Void> limpiarDatos() {
     fachada.limpiarDatos();
     return ResponseEntity.noContent().build();

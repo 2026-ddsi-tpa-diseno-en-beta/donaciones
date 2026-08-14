@@ -71,18 +71,17 @@ integracion.
 | Metodo | Ruta | Descripcion |
 |---|---|---|
 | `POST` | `/donaciones` | Registra una donacion. Valida cantidad > 0, que el producto exista, y que el donador exista y pueda donar |
-| `GET` | `/donaciones` | Lista todas, o filtra con `?donadorID=&fecha=yyyy-MM-dd` |
+| `GET` | `/donaciones` | Lista todas, o filtra con `?donadorID=&fecha=yyyy-MM-dd`; siempre ordena cronologicamente |
 | `GET` | `/donaciones/{id}` | Busca por ID |
-| `GET` | `/donaciones/search?donadorID=&fecha=` | Busqueda por donador desde una fecha |
 | `GET` | `/donaciones/{id}/historial` | **Historial completo de cambios de estado** (trazabilidad y auditoria) |
-| `PATCH` | `/donaciones/{id}/estado?estado=` | Cambia el estado validando la transicion |
-| `POST` | `/donaciones/{id}/quejas` | Registra una queja (alias: `/queja`) |
+| `PATCH` | `/donaciones/{id}/estado?estado=ACEPTADA` | Confirma la aceptacion informada por Logistica |
+| `POST` | `/donaciones/{id}/quejas` | Registra una queja y cambia la donacion aceptada a `CONQUEJA` |
 
 ### Productos
 | Metodo | Ruta | Descripcion |
 |---|---|---|
-| `POST` | `/productos` | Alta. El `identificadorID` es **opcional**; `subcategoriaID` clasifica el producto |
-| `GET` | `/productos` | Lista |
+| `POST` | `/productos` | Alta. `categoriaID` es obligatorio; `identificadorID` es opcional |
+| `GET` | `/productos` | Lista con categoria, subcategoria e identificador |
 | `GET` | `/productos/{id}` | Busca por ID (incluye `subcategoriaID`) |
 | `PUT` | `/productos/{id}` | **Modificacion**, revalidando el identificador |
 | `DELETE` | `/productos/{id}` | **Baja**. 409 si tiene donaciones asociadas |
@@ -94,7 +93,7 @@ integracion.
 | `GET` | `/categorias` | Lista |
 | `GET` | `/categorias/{id}` | Busca por ID |
 | `GET` | `/categorias/{id}/subcategorias` | **Subcategorias** que la componen |
-| `PUT` | `/categorias/{id}` | **Modificacion** |
+| `PUT` | `/categorias/{id}` | Modifica nombre y descripcion; la jerarquia no se cambia implicitamente |
 | `DELETE` | `/categorias/{id}` | **Baja**. 409 si tiene subcategorias o productos |
 
 ### Identificadores
@@ -129,14 +128,17 @@ integracion.
 - **Validacion de identificadores**: codigo de barras valido si la descripcion tiene 3+ palabras;
   QR valido si el nombre tiene una cantidad par de letras (cuenta letras reales, ignora espacios y
   puntuacion). El identificador es opcional.
-- **Maquina de estados**: `INGRESADA → ACEPTADA → CONQUEJA`. Toda transicion queda registrada con
-  fecha y detalle, y el historial es consultable por HTTP.
+- **Maquina de estados**: `INGRESADA → ACEPTADA → CONQUEJA`. Logistica solo confirma
+  `ACEPTADA`; `CONQUEJA` se alcanza al registrar la queja, junto con su efecto en Donadores y
+  Entidades. Toda transicion queda registrada con fecha y detalle.
 - **Recepcion y rechazo**: antes de registrar se verifica contra Donadores y Entidades que el
   donador exista y que pueda donar. Un rechazo devuelve 422, no un error generico.
-- **Categoria y subcategoria**: deben existir previamente. La subcategoria es la unidad minima de
-  asignacion y se valida que pertenezca a la categoria declarada.
+- **Categoria y subcategoria**: deben existir previamente. Una categoria sin hijas clasifica el
+  producto directamente; si tiene subcategorias, se debe elegir una que le pertenezca. No se puede
+  agregar la primera subcategoria mientras existan productos clasificados directamente.
 - **ABM completo** de productos, categorias e identificadores, con integridad referencial.
-- **IDs numericos** asignados por este componente, desde una secuencia persistida.
+- **IDs numericos** asignados por este componente, desde una secuencia persistida. Los requests de
+  alta no aceptan IDs elegidos por el cliente.
 
 ---
 

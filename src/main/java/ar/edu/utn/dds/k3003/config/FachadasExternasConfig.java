@@ -3,8 +3,6 @@ package ar.edu.utn.dds.k3003.config;
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.integrations.FachadaDonadoresYEntidadesHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaDonadoresYEntidadesLocal;
-import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosHttp;
-import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosLocal;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaLocal;
 import java.util.LinkedHashMap;
@@ -29,8 +27,7 @@ public class FachadasExternasConfig {
       Fachada fachada,
       Environment environment,
       @Value("${donatrack.donadores-y-entidades.url:}") String donadoresUrl,
-      @Value("${donatrack.logistica.url:}") String logisticaUrl,
-      @Value("${donatrack.incentivos.url:}") String incentivosUrl) {
+      @Value("${donatrack.logistica.url:}") String logisticaUrl) {
 
     boolean permiteFalsas = perfilPermiteFachadasLocales(environment);
     Map<String, String> modos = new LinkedHashMap<>();
@@ -49,20 +46,6 @@ public class FachadasExternasConfig {
     fachada.setFachadaLogistica(
         tieneUrl(logisticaUrl) ? new FachadaLogisticaHttp(logisticaUrl) : new FachadaLogisticaLocal());
     modos.put("logistica", modo(logisticaUrl));
-
-    // Incentivos es OPCIONAL: el enunciado no define una interaccion Donaciones -> Incentivos.
-    // Avisarle al registrar una queja es un extra para que la perdida de progreso de mision se
-    // note en el momento en vez de esperar a que corra su cron, que es el mecanismo que la
-    // consigna si define. Sin la URL el flujo funciona igual.
-    if (tieneUrl(incentivosUrl)) {
-      fachada.setFachadaIncentivos(new FachadaIncentivosHttp(incentivosUrl));
-      modos.put("incentivos", modo(incentivosUrl));
-    } else {
-      log.info(
-          "INCENTIVOS_URL no configurada: no se notificara a Incentivos al registrar una queja. "
-              + "Es opcional; su cron detecta la perdida de progreso igual.");
-      modos.put("incentivos", "NO CONFIGURADA (opcional)");
-    }
 
     log.info("Integraciones configuradas: {}", modos);
     return new EstadoIntegraciones(modos);
