@@ -86,15 +86,27 @@ obligatorias**: si falta alguna, la aplicación no arranca (ver más abajo).
 | `DD_ENV` | no | Tag de ambiente en las métricas. Default `prod`. |
 | `JPA_SHOW_SQL` | no | Loguea el SQL. Default `false`. |
 
-### Por qué la aplicación no arranca sin las URLs
+### Por qué `INCENTIVOS_URL` es opcional
 
-Si una URL de integración falta, el módulo instalaría una fachada local de prueba cuyo
-`buscarDonadorPorID` **fabrica un donador para cualquier ID** y cuyo `puedeDonar` devuelve siempre
-`true`. Eso convierte un error de configuración en "el módulo no valida nada", en silencio, y es
-indistinguible de no haber implementado la validación.
+El enunciado define dos interacciones salientes para este componente: hacia **Donadores y
+Entidades** (verificar el donador, consultar si puede donar, registrar la queja) y hacia
+**Logística** (guardar la donación en el depósito). No define una interacción
+`Donaciones → Incentivos`.
 
-Por eso, fuera de los perfiles `dev` y `test`, la ausencia de una URL **aborta el arranque** con un
-mensaje explícito. Para levantar local sin los otros componentes:
+Avisarle a Incentivos cuando se registra una queja es un agregado propio, para que la pérdida de
+progreso de una misión se note en el momento en vez de esperar a que corra su cron-job, que es el
+mecanismo que la Entrega 4 sí define. Sin esa variable el flujo funciona igual y la aplicación
+arranca sin problemas.
+
+### Por qué la aplicación no arranca sin las otras dos URLs
+
+Si falta la de Donadores y Entidades o la de Logística, el módulo instalaría una fachada local de
+prueba cuyo `buscarDonadorPorID` **fabrica un donador para cualquier ID** y cuyo `puedeDonar`
+devuelve siempre `true`. Eso convierte un error de configuración en "el módulo no valida nada", en
+silencio, y es indistinguible de no haber implementado la validación.
+
+Por eso, fuera de los perfiles `dev` y `test`, la ausencia de una de esas dos **aborta el arranque**
+con un mensaje explícito. Para levantar local sin los otros componentes:
 
 ```bash
 SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run

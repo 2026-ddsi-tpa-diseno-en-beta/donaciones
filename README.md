@@ -51,33 +51,17 @@ Tests: `mvn test`. Requiere JDK 21.
 
 ## Variables de entorno
 
-| Variable | Obligatoria | Default | Descripcion |
-|---|---|---|---|
-| `DONADORES_Y_ENTIDADES_URL` | **si** | — | Base URL de Donadores y Entidades |
-| `LOGISTICA_URL` | **si** | — | Base URL de Logistica |
-| `INCENTIVOS_URL` | no | — | Base URL de Incentivos. Opcional, ver abajo |
-| `SPRING_DATASOURCE_URL` | si en prod | H2 en memoria | JDBC de PostgreSQL |
-| `SPRING_DATASOURCE_USERNAME` | si en prod | `sa` | Usuario de la base |
-| `SPRING_DATASOURCE_PASSWORD` | si en prod | `password` | Password de la base |
-| `PORT` | no | `8080` | Puerto del servidor |
-| `DATADOG_ENABLED` | no | `false` | Activa el export de metricas |
-| `DATADOG_API_KEY` | si Datadog activo | — | API key de Datadog |
-| `DATADOG_URI` | no | `https://api.us5.datadoghq.com` | Endpoint de Datadog |
-| `DD_ENV` | no | `prod` | Tag de ambiente en las metricas |
-| `JPA_SHOW_SQL` | no | `false` | Loguea el SQL generado |
+| Variable | Descripcion |
+|---|---|
+| `DONADORES_Y_ENTIDADES_URL` | Base URL de Donadores y Entidades |
+| `LOGISTICA_URL` | Base URL de Logistica |
+| `SPRING_DATASOURCE_URL` | JDBC de PostgreSQL |
+| `SPRING_DATASOURCE_USERNAME` | Usuario de la base |
+| `SPRING_DATASOURCE_PASSWORD` | Password de la base |
 
-### Por que `INCENTIVOS_URL` es opcional
-
-El enunciado define dos interacciones salientes para este componente: hacia Donadores y Entidades
-(verificar el donador, consultar si puede donar, registrar la queja) y hacia Logistica (guardar la
-donacion en el deposito). **No define una interaccion Donaciones -> Incentivos.**
-
-Avisarle a Incentivos cuando se registra una queja es un agregado propio, para que la perdida de
-progreso de una mision se note en el momento en vez de esperar a que corra su cron-job, que es el
-mecanismo que la Entrega 4 si define. Si la variable no esta configurada, el flujo funciona igual y
-la aplicacion arranca sin problemas.
-
-`GET /admin/estado` muestra en que modo quedo cada integracion.
+El resto de la configuracion es opcional y esta documentada en
+[docs/arquitectura.md](docs/arquitectura.md). `GET /admin/estado` muestra en que modo quedo cada
+integracion.
 
 ---
 
