@@ -21,12 +21,22 @@ public class JpaCategoriasRepository implements CategoriasRepository {
 
   @Override
   public Optional<Categoria> findById(String id) {
-    return repository.findById(id);
+    return id == null ? Optional.empty() : repository.findById(id);
+  }
+
+  @Override
+  public List<Categoria> buscarSubcategoriasDe(String categoriaPadreId) {
+    return repository.findByCategoriaPadreId(categoriaPadreId);
   }
 
   @Override
   public List<Categoria> findAll() {
     return repository.findAll();
+  }
+
+  @Override
+  public void deleteById(String id) {
+    repository.deleteById(id);
   }
 
   @Override

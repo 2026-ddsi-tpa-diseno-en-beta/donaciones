@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SpringDataDonacionesRepository extends JpaRepository<Donacion, String> {
   List<Donacion> findByDonadorId(String donadorId);
+
+  List<Donacion> findByProductoId(String productoId);
 }

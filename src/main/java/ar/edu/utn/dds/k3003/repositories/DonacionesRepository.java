@@ -11,6 +11,8 @@ public interface DonacionesRepository {
 
   List<Donacion> buscarPorDonador(String donadorId);
 
+  List<Donacion> buscarPorProducto(String productoId);
+
   List<Donacion> findAll();
 
   void deleteAll();

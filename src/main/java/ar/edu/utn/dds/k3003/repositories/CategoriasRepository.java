@@ -9,7 +9,11 @@ public interface CategoriasRepository {
 
   Optional<Categoria> findById(String id);
 
+  List<Categoria> buscarSubcategoriasDe(String categoriaPadreId);
+
   List<Categoria> findAll();
+
+  void deleteById(String id);
 
   void deleteAll();
 }

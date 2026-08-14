@@ -21,12 +21,27 @@ public class JpaProductosRepository implements ProductosRepository {
 
   @Override
   public Optional<Producto> findById(String id) {
-    return repository.findById(id);
+    return id == null ? Optional.empty() : repository.findById(id);
+  }
+
+  @Override
+  public List<Producto> buscarPorCategoria(String categoriaId) {
+    return repository.findByCategoriaOSubcategoria(categoriaId);
+  }
+
+  @Override
+  public List<Producto> buscarPorIdentificador(String identificadorId) {
+    return repository.findByIdentificadorId(identificadorId);
   }
 
   @Override
   public List<Producto> findAll() {
     return repository.findAll();
+  }
+
+  @Override
+  public void deleteById(String id) {
+    repository.deleteById(id);
   }
 
   @Override

@@ -7,32 +7,98 @@ import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaIncentivosLocal;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaHttp;
 import ar.edu.utn.dds.k3003.integrations.FachadaLogisticaLocal;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 @Configuration
 public class FachadasExternasConfig {
 
-  public FachadasExternasConfig(
+  private static final Logger log = LoggerFactory.getLogger(FachadasExternasConfig.class);
+
+  /** Perfiles en los que se permite arrancar sin integraciones reales. */
+  private static final String[] PERFILES_SIN_INTEGRACION = {"dev", "test"};
+
+  @Bean
+  public EstadoIntegraciones estadoIntegraciones(
       Fachada fachada,
-      @Value("${donatrack.donadores-y-entidades.url:}") String donadoresYEntidadesUrl,
+      Environment environment,
+      @Value("${donatrack.donadores-y-entidades.url:}") String donadoresUrl,
       @Value("${donatrack.logistica.url:}") String logisticaUrl,
       @Value("${donatrack.incentivos.url:}") String incentivosUrl) {
+
+    boolean permiteFalsas = perfilPermiteFachadasLocales(environment);
+    Map<String, String> modos = new LinkedHashMap<>();
+
+    // Obligatorias: son las dos interacciones que el enunciado le pide a este componente
+    // (Donaciones -> Donadores y Entidades, y Donaciones -> Logistica).
+    exigirUrl("DONADORES_Y_ENTIDADES_URL", donadoresUrl, permiteFalsas);
+    exigirUrl("LOGISTICA_URL", logisticaUrl, permiteFalsas);
+
     fachada.setFachadaDonadoresYEntidades(
-        tieneUrl(donadoresYEntidadesUrl)
-            ? new FachadaDonadoresYEntidadesHttp(donadoresYEntidadesUrl)
+        tieneUrl(donadoresUrl)
+            ? new FachadaDonadoresYEntidadesHttp(donadoresUrl)
             : new FachadaDonadoresYEntidadesLocal());
+    modos.put("donadoresYEntidades", modo(donadoresUrl));
+
     fachada.setFachadaLogistica(
-        tieneUrl(logisticaUrl)
-            ? new FachadaLogisticaHttp(logisticaUrl)
-            : new FachadaLogisticaLocal());
-    fachada.setFachadaIncentivos(
-        tieneUrl(incentivosUrl)
-            ? new FachadaIncentivosHttp(incentivosUrl)
-            : new FachadaIncentivosLocal());
+        tieneUrl(logisticaUrl) ? new FachadaLogisticaHttp(logisticaUrl) : new FachadaLogisticaLocal());
+    modos.put("logistica", modo(logisticaUrl));
+
+    // Incentivos es OPCIONAL: el enunciado no define una interaccion Donaciones -> Incentivos.
+    // Avisarle al registrar una queja es un extra para que la perdida de progreso de mision se
+    // note en el momento en vez de esperar a que corra su cron, que es el mecanismo que la
+    // consigna si define. Sin la URL el flujo funciona igual.
+    if (tieneUrl(incentivosUrl)) {
+      fachada.setFachadaIncentivos(new FachadaIncentivosHttp(incentivosUrl));
+      modos.put("incentivos", modo(incentivosUrl));
+    } else {
+      log.info(
+          "INCENTIVOS_URL no configurada: no se notificara a Incentivos al registrar una queja. "
+              + "Es opcional; su cron detecta la perdida de progreso igual.");
+      modos.put("incentivos", "NO CONFIGURADA (opcional)");
+    }
+
+    log.info("Integraciones configuradas: {}", modos);
+    return new EstadoIntegraciones(modos);
   }
 
-  private Boolean tieneUrl(String url) {
+  /**
+   * Sin URL configurada se instalaria una fachada local que acepta cualquier donador. Eso convierte
+   * un error de configuracion en "el modulo no valida nada", en silencio, asi que fuera de dev/test
+   * preferimos no arrancar.
+   */
+  private void exigirUrl(String variable, String url, boolean permiteFalsas) {
+    if (tieneUrl(url)) {
+      return;
+    }
+    if (!permiteFalsas) {
+      throw new IllegalStateException(
+          "Falta la variable de entorno "
+              + variable
+              + ". Sin ella el modulo usaria una fachada de prueba que acepta cualquier donador. "
+              + "Configurala, o activa el perfil 'dev' si estas probando local.");
+    }
+    log.warn(
+        "{} no esta configurada: se usa una fachada LOCAL de prueba. NO usar asi en produccion.",
+        variable);
+  }
+
+  private boolean perfilPermiteFachadasLocales(Environment environment) {
+    return environment.acceptsProfiles(
+        org.springframework.core.env.Profiles.of(PERFILES_SIN_INTEGRACION));
+  }
+
+  private String modo(String url) {
+    return tieneUrl(url) ? "HTTP " + url : "LOCAL (fachada de prueba)";
+  }
+
+  private boolean tieneUrl(String url) {
     return url != null && !url.isBlank();
   }
 }

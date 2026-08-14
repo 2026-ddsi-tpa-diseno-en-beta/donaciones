@@ -1,6 +1,5 @@
 package ar.edu.utn.dds.k3003.model;
 
-import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.TipoIdentificadorEnum;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -12,21 +11,19 @@ import lombok.Setter;
 
 @Entity
 @Getter
-@Setter
 public class Identificador {
-  @Id
-  private String id;
+  @Id @Setter private String id;
 
   @Enumerated(EnumType.STRING)
-  private TipoIdentificadorEnum tipo;
+  private TipoIdentificador tipo;
 
   private String descripcion;
 
   protected Identificador() {}
 
-  public Identificador(TipoIdentificadorEnum tipo, String descripcion) {
+  public Identificador(TipoIdentificador tipo, String descripcion) {
     if (tipo == null) {
-      throw new RuntimeException("El tipo de identificador no puede ser nulo");
+      throw new IllegalArgumentException("El tipo de identificador no puede ser nulo");
     }
 
     this.tipo = tipo;
@@ -40,29 +37,16 @@ public class Identificador {
     }
   }
 
-  public Boolean esValidoPara(String nombreProducto, String descripcionProducto) {
-    if (TipoIdentificadorEnum.CODIGODEBARRAS.equals(this.tipo)) {
-      return cantidadDePalabras(descripcionProducto) >= 3;
+  public void modificar(TipoIdentificador tipo, String descripcion) {
+    if (tipo == null) {
+      throw new IllegalArgumentException("El tipo de identificador no puede ser nulo");
     }
-
-    if (TipoIdentificadorEnum.QR.equals(this.tipo)) {
-      return cantidadDeLetras(nombreProducto) % 2 == 0;
-    }
-
-    return Boolean.FALSE;
+    this.tipo = tipo;
+    this.descripcion = descripcion;
   }
 
-  private Integer cantidadDePalabras(String texto) {
-    if (texto == null || texto.isBlank()) {
-      return 0;
-    }
-    return texto.trim().split("\\s+").length;
-  }
-
-  private Integer cantidadDeLetras(String texto) {
-    if (texto == null || texto.isBlank()) {
-      return -1;
-    }
-    return (int) texto.chars().filter(Character::isLetter).count();
+  /** Delega la regla en el tipo: cada tipo sabe como validarse (polimorfismo, sin ifs). */
+  public boolean esValidoPara(String nombreProducto, String descripcionProducto) {
+    return this.tipo.esValidoPara(nombreProducto, descripcionProducto);
   }
 }

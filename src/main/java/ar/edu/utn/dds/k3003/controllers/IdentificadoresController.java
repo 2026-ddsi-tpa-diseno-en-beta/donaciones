@@ -5,9 +5,11 @@ import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.IdentificadorDTO;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,8 +37,19 @@ public class IdentificadoresController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<IdentificadorDTO> buscarIdentificadorPorID(
-      @PathVariable("id") String identificadorID) {
-    return ResponseEntity.ok(fachada.buscarIdentificadorPorID(identificadorID));
+  public ResponseEntity<IdentificadorDTO> buscarIdentificadorPorID(@PathVariable("id") String id) {
+    return ResponseEntity.ok(fachada.buscarIdentificadorPorID(id));
+  }
+
+  @PutMapping("/{id}")
+  public ResponseEntity<IdentificadorDTO> modificarIdentificador(
+      @PathVariable("id") String id, @RequestBody IdentificadorDTO identificadorDTO) {
+    return ResponseEntity.ok(fachada.modificarIdentificador(id, identificadorDTO));
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> eliminarIdentificador(@PathVariable("id") String id) {
+    fachada.eliminarIdentificador(id);
+    return ResponseEntity.noContent().build();
   }
 }

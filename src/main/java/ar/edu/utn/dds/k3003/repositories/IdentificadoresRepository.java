@@ -11,5 +11,7 @@ public interface IdentificadoresRepository {
 
   List<Identificador> findAll();
 
+  void deleteById(String id);
+
   void deleteAll();
 }

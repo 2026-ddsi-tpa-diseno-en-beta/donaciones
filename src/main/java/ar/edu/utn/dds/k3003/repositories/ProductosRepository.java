@@ -9,7 +9,13 @@ public interface ProductosRepository {
 
   Optional<Producto> findById(String id);
 
+  List<Producto> buscarPorCategoria(String categoriaId);
+
+  List<Producto> buscarPorIdentificador(String identificadorId);
+
   List<Producto> findAll();
+
+  void deleteById(String id);
 
   void deleteAll();
 }

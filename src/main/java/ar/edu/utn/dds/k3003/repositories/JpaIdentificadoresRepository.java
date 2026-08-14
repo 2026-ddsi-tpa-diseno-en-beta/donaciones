@@ -21,12 +21,17 @@ public class JpaIdentificadoresRepository implements IdentificadoresRepository {
 
   @Override
   public Optional<Identificador> findById(String id) {
-    return repository.findById(id);
+    return id == null ? Optional.empty() : repository.findById(id);
   }
 
   @Override
   public List<Identificador> findAll() {
     return repository.findAll();
+  }
+
+  @Override
+  public void deleteById(String id) {
+    repository.deleteById(id);
   }
 
   @Override

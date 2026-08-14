@@ -3,6 +3,7 @@ package ar.edu.utn.dds.k3003.controllers;
 import ar.edu.utn.dds.k3003.Fachada;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.DonacionDTO;
 import ar.edu.utn.dds.k3003.catedra.dtos.donaciones.EstadoDonacionEnum;
+import ar.edu.utn.dds.k3003.controllers.responses.CambioEstadoResponse;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -46,9 +47,22 @@ public class DonacionesController {
       return ResponseEntity.ok(fachada.listarDonaciones());
     }
     if (donadorID == null || fecha == null) {
-      throw new RuntimeException("Debe indicar donadorID y fecha para filtrar donaciones");
+      throw new IllegalArgumentException("Debe indicar donadorID y fecha para filtrar donaciones");
     }
     return ResponseEntity.ok(fachada.buscarPorDonadorYFechaInicio(donadorID, fecha));
+  }
+
+  /**
+   * Historial completo de cambios de estado de una donacion. Cubre el requisito de trazabilidad y
+   * auditoria sin necesidad de mirar la base de datos.
+   */
+  @GetMapping("/{id}/historial")
+  public ResponseEntity<List<CambioEstadoResponse>> historialDeEstados(
+      @PathVariable("id") String donacionID) {
+    return ResponseEntity.ok(
+        fachada.obtenerHistorialDeEstados(donacionID).stream()
+            .map(CambioEstadoResponse::desde)
+            .toList());
   }
 
   @GetMapping("/search")

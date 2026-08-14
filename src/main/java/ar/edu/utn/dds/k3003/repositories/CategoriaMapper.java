@@ -6,8 +6,7 @@ import ar.edu.utn.dds.k3003.model.Categoria;
 public class CategoriaMapper {
 
   public Categoria toModel(CategoriaDTO categoriaDTO) {
-    return new Categoria(
-        categoriaDTO.nombre(), categoriaDTO.descripcion(), categoriaDTO.subcategoriaID());
+    return new Categoria(categoriaDTO.nombre(), categoriaDTO.descripcion(), null);
   }
 
   public CategoriaDTO toDTO(Categoria categoria) {
@@ -15,6 +14,6 @@ public class CategoriaMapper {
         categoria.getId(),
         categoria.getNombre(),
         categoria.getDescripcion(),
-        categoria.getSubcategoriaId());
+        categoria.getCategoriaPadreId());
   }
 }

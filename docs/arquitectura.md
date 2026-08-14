@@ -2,76 +2,116 @@
 
 ## Componentes
 
-El componente desarrollado es el Servicio de Donaciones. Expone una API HTTP y concentra
-la orquestacion en `Fachada`, respetando la idea de controllers como capa de presentacion
-y fachada como capa de servicio.
+El componente expone una API HTTP y concentra la orquestación en `Fachada`: los controllers son la
+capa de presentación y la fachada la capa de servicio. El dominio no conoce ni a Spring ni a los
+DTOs de la cátedra.
 
 ```mermaid
 flowchart LR
-  subgraph Cliente["Cliente externo"]
-    Postman["Postman / consumidor HTTP"]
+  subgraph Clientes["Clientes"]
+    Postman["Postman / Swagger UI"]
+    Bot["Bot de Telegram"]
   end
 
-  subgraph Donaciones["Servicio de Donaciones"]
-    Controllers["Controllers REST\n/donaciones\n/productos\n/categorias\n/identificadores"]
-    Fachada["FachadaDonaciones\nFachada"]
-    Dominio["Dominio\nDonacion\nProducto\nCategoria\nIdentificador"]
-    Repos["Repositorios JPA\nDonaciones\nProductos\nCategorias\nIdentificadores"]
-    Mappers["Mappers\nDTO a Dominio"]
-    Metrics["Micrometer / Actuator"]
+  subgraph Donaciones["Servicio de Donaciones (Render)"]
+    Controllers["Controllers REST<br>/donaciones /productos<br>/categorias /identificadores<br>/admin"]
+    Fachada["Fachada<br>(implementa FachadaDonaciones)"]
+    Dominio["Dominio<br>Donacion · Producto<br>Categoria · Identificador<br>EstadoDonacion · TipoIdentificador"]
+    Mappers["Mappers<br>dominio ⇄ DTOs de cátedra"]
+    Repos["Repositorios<br>JPA (prod) / in-memory (tests)"]
+    Metrics["Micrometer + Actuator"]
   end
 
-  subgraph Persistencia["Persistencia"]
-    DB["PostgreSQL\nH2 local/test"]
-  end
+  DB[("PostgreSQL<br>H2 en dev/test")]
+  DD["Datadog"]
 
-  subgraph Donadores["Servicio de Donadores y Entidades"]
-    FDE["FachadaDonadoresYEntidades"]
-  end
-
-  subgraph Logistica["Servicio de Logistica"]
-    FL["FachadaLogistica"]
-  end
+  DYE["Donadores y Entidades"]
+  LOG["Logística"]
+  INC["Incentivos"]
 
   Postman --> Controllers
+  Bot --> Controllers
   Controllers --> Fachada
   Fachada --> Dominio
-  Fachada --> Repos
   Fachada --> Mappers
+  Fachada --> Repos
   Fachada --> Metrics
   Repos --> DB
-  Fachada -->|HTTP| FDE
-  Fachada -->|HTTP| FL
+  Metrics --> DD
+
+  Fachada -->|"GET /donadores/{id}<br>GET /donadores/{id}/puede-donar<br>POST /donadores/{id}/quejas"| DYE
+  Fachada -->|"POST /depositos/{id}/donacion"| LOG
+  Fachada -.->|"POST /procesamiento/{id}<br>(opcional)"| INC
+
+  LOG -.->|"PATCH /donaciones/{id}/estado"| Controllers
+  INC -.->|"GET /donaciones/search<br>GET /productos/{id}"| Controllers
+  DYE -.->|"GET /productos/{id}"| Controllers
 ```
 
-## Despliegue actual
+Las flechas punteadas son las llamadas **entrantes**: Logística cambia el estado de la donación al
+reportar la entrega, Incentivos consulta el historial del donador para evaluar misiones, y
+Donadores y Entidades valida el producto al registrar una necesidad (Entrega 4).
 
-La aplicacion se ejecuta como un servicio Spring Boot. En despliegue productivo se configura
-con PostgreSQL mediante variables de entorno de Spring (`SPRING_DATASOURCE_URL`,
-`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`). Para ejecucion local sin
-configuracion externa conserva H2 en memoria como fallback.
+## Despliegue
 
 ```mermaid
 flowchart TB
-  User["Postman / navegador"] --> Internet["HTTPS"]
-  Internet --> Render["Render Web Service"]
-  Render --> Container["Contenedor Docker"]
-  Container --> App["Spring Boot\nar.edu.utn.dds.k3003.app.Application"]
-  App --> DB["PostgreSQL"]
-  App --> Metrics["Actuator / Micrometer"]
-
-  App --> DonadoresURL["DONADORES_Y_ENTIDADES_URL"]
-  App --> LogisticaURL["LOGISTICA_URL"]
+  User["Postman / navegador / bot"] -->|HTTPS| Render["Render — Web Service"]
+  Render --> Container["Contenedor Docker<br>(Dockerfile multi-stage, puerto 8080)"]
+  Container --> App["Spring Boot<br>ar.edu.utn.dds.k3003.app.Application"]
+  App --> DB[("Render PostgreSQL")]
+  App --> DD["Datadog<br>(métricas vía Micrometer)"]
+  App --> DYE["Donadores y Entidades<br>DONADORES_Y_ENTIDADES_URL"]
+  App --> LOG["Logística<br>LOGISTICA_URL"]
+  App -.-> INC["Incentivos<br>INCENTIVOS_URL (opcional)"]
 ```
 
-## Notas de integracion
+## Configuración
 
-- La integracion con Donadores y Entidades se configura con `DONADORES_Y_ENTIDADES_URL`.
-  El servicio consume `GET /donadores/{id}`, `GET /donadores/{id}/puede-donar` y
-  `POST /donadores/{id}/quejas`.
-- La integracion con Logistica se configura con `LOGISTICA_URL`. El servicio consume
-  `POST /depositos/{id}/donacion` para informar la donacion ingresada.
-- Si las URLs externas no estan configuradas, se usan adaptadores locales solo para facilitar
-  desarrollo aislado.
-- Se exponen metricas de altas y errores de integracion mediante Actuator/Micrometer.
-- Las categorias se cargan previamente por `/categorias` y se validan antes de crear productos.
+Todo se configura por variables de entorno. **Las URLs de Donadores y Entidades y de Logística son
+obligatorias**: si falta alguna, la aplicación no arranca (ver más abajo).
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `SPRING_DATASOURCE_URL` | sí en prod | JDBC de PostgreSQL. Sin ella cae a H2 en memoria. |
+| `SPRING_DATASOURCE_USERNAME` | sí en prod | Usuario de la base. |
+| `SPRING_DATASOURCE_PASSWORD` | sí en prod | Password de la base. |
+| `DONADORES_Y_ENTIDADES_URL` | **sí** | Base URL del componente de Donadores y Entidades. |
+| `LOGISTICA_URL` | **sí** | Base URL del componente de Logística. |
+| `INCENTIVOS_URL` | no | Base URL de Incentivos. **Opcional**, ver abajo. |
+| `PORT` | no | Puerto del servidor. Default `8080`. |
+| `DATADOG_ENABLED` | no | Activa el export de métricas. Default `false`. |
+| `DATADOG_API_KEY` | si `DATADOG_ENABLED=true` | API key de Datadog. |
+| `DATADOG_URI` | no | Endpoint de Datadog. Default `https://api.us5.datadoghq.com`. |
+| `DD_ENV` | no | Tag de ambiente en las métricas. Default `prod`. |
+| `JPA_SHOW_SQL` | no | Loguea el SQL. Default `false`. |
+
+### Por qué la aplicación no arranca sin las URLs
+
+Si una URL de integración falta, el módulo instalaría una fachada local de prueba cuyo
+`buscarDonadorPorID` **fabrica un donador para cualquier ID** y cuyo `puedeDonar` devuelve siempre
+`true`. Eso convierte un error de configuración en "el módulo no valida nada", en silencio, y es
+indistinguible de no haber implementado la validación.
+
+Por eso, fuera de los perfiles `dev` y `test`, la ausencia de una URL **aborta el arranque** con un
+mensaje explícito. Para levantar local sin los otros componentes:
+
+```bash
+SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+```
+
+El perfil `dev` habilita las fachadas locales, H2 en memoria y la consola H2. `GET /admin/estado`
+informa en todo momento qué modo quedó activo para cada integración.
+
+## Observabilidad
+
+- **Contadores**: donaciones registradas, aceptadas, rechazadas; productos, categorías e
+  identificadores registrados y eliminados; quejas; errores de integración por componente.
+- **Timers**: `donatrack.donaciones.integracion.duracion`, etiquetado por `componente`,
+  `operacion` y `resultado` (`ok` / `not_found` / `error`). Sirve para distinguir "el vecino está
+  caído" de "el vecino está lento", que con los cold starts de Render pasa seguido.
+- Expuestas en `/actuator/metrics` y `/actuator/prometheus`, y exportadas a Datadog.
+
+> `management.endpoints.web.exposure.include` está restringido a `health,info,metrics,prometheus`.
+> Con `*` quedaban públicos `/actuator/env` — que filtra el connection string de la base y la API
+> key de Datadog — y `/actuator/heapdump`, sin autenticación.

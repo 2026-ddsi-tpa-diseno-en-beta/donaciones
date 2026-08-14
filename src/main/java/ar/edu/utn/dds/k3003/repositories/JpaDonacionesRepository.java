@@ -21,12 +21,17 @@ public class JpaDonacionesRepository implements DonacionesRepository {
 
   @Override
   public Optional<Donacion> findById(String id) {
-    return repository.findById(id);
+    return id == null ? Optional.empty() : repository.findById(id);
   }
 
   @Override
   public List<Donacion> buscarPorDonador(String donadorId) {
     return repository.findByDonadorId(donadorId);
+  }
+
+  @Override
+  public List<Donacion> buscarPorProducto(String productoId) {
+    return repository.findByProductoId(productoId);
   }
 
   @Override

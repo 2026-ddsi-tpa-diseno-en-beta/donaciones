@@ -2,42 +2,58 @@ package ar.edu.utn.dds.k3003.repositories;
 
 import ar.edu.utn.dds.k3003.model.Categoria;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class InMemoryCategoriasRepo implements CategoriasRepository {
-  private final List<Categoria> categorias;
-  private Integer idSecuencial;
+  private final Map<String, Categoria> categorias = new LinkedHashMap<>();
+  private final GeneradorDeIds generadorDeIds;
 
   public InMemoryCategoriasRepo() {
-    this.categorias = new ArrayList<>();
-    this.idSecuencial = 1;
+    this(new InMemoryGeneradorDeIds());
+  }
+
+  public InMemoryCategoriasRepo(GeneradorDeIds generadorDeIds) {
+    this.generadorDeIds = generadorDeIds;
   }
 
   @Override
   public Categoria save(Categoria categoria) {
     if (categoria.getId() == null) {
-      categoria.setId(String.valueOf(idSecuencial));
-      idSecuencial++;
-      this.categorias.add(categoria);
+      categoria.setId(generadorDeIds.siguiente("categoria"));
     }
-
+    this.categorias.put(categoria.getId(), categoria);
     return categoria;
   }
 
   @Override
   public Optional<Categoria> findById(String id) {
-    return this.categorias.stream().filter(c -> c.getId().equals(id)).findFirst();
+    return Optional.ofNullable(this.categorias.get(id));
+  }
+
+  @Override
+  public List<Categoria> buscarSubcategoriasDe(String categoriaPadreId) {
+    return this.categorias.values().stream()
+        .filter(c -> Objects.equals(c.getCategoriaPadreId(), categoriaPadreId))
+        .collect(Collectors.toList());
   }
 
   @Override
   public List<Categoria> findAll() {
-    return new ArrayList<>(this.categorias);
+    return new ArrayList<>(this.categorias.values());
+  }
+
+  @Override
+  public void deleteById(String id) {
+    this.categorias.remove(id);
   }
 
   @Override
   public void deleteAll() {
     this.categorias.clear();
-    this.idSecuencial = 1;
   }
 }
