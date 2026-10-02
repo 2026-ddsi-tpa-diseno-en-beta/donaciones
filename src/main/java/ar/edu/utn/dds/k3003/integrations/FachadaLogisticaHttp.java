@@ -16,7 +16,7 @@ public class FachadaLogisticaHttp implements FachadaLogistica {
   private final RestClient restClient;
 
   public FachadaLogisticaHttp(String baseUrl) {
-    this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    this.restClient = RestClient.builder().requestInterceptor(new ar.edu.utn.dds.k3003.observability.TracePropagationInterceptor()).baseUrl(baseUrl).build();
   }
 
   @Override

@@ -101,6 +101,9 @@
       <version>2.8.17</version>
     </dependency>
 
+    <dependency><groupId>com.logtail</groupId><artifactId>logback-logtail</artifactId><version>0.3.6</version></dependency>
+    <dependency><groupId>org.codehaus.janino</groupId><artifactId>janino</artifactId><scope>runtime</scope></dependency>
+    <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
   </dependencies>
 
   <build>

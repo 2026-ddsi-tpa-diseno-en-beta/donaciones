@@ -180,6 +180,7 @@ public class Fachada implements FachadaDonaciones {
                   guardada.getCantidad()));
     }
 
+    org.slf4j.LoggerFactory.getLogger(Fachada.class).info("donacion.registrada donacion={} deposito={} producto={} cantidad={}", guardada.getId(), guardada.getDepositoId(), guardada.getProductoId(), guardada.getCantidad());
     incrementarMetrica("donatrack.donaciones.registradas");
     return donacionesMapper.toDTO(guardada);
   }
@@ -249,6 +250,7 @@ public class Fachada implements FachadaDonaciones {
       throws NoSuchElementException {
     Donacion donacion = buscarDonacion(donacionID);
 
+    if (donacion.getEstadoActual() == donacionesMapper.toModel(estado)) return donacionesMapper.toDTO(donacion);
     donacion.cambiarEstado(
         donacionesMapper.toModel(estado), "Cambio de estado reportado por Logistica/Sistema");
     donacionesRepository.save(donacion);
@@ -314,6 +316,7 @@ public class Fachada implements FachadaDonaciones {
     donacion.cambiarEstado(EstadoDonacion.CONQUEJA, descripcion);
     donacionesRepository.save(donacion);
 
+    org.slf4j.LoggerFactory.getLogger(Fachada.class).info("queja.registrada donacion={} estado=CONQUEJA", donacion.getId());
     incrementarMetrica("donatrack.donaciones.quejas.registradas");
 
     return donacionesMapper.toDTO(donacion);
