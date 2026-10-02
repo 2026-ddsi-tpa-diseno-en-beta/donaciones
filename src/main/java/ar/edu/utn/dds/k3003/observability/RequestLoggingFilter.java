@@ -46,6 +46,9 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     } finally {
       long millis = (System.nanoTime() - start) / 1_000_000;
       int status = failed ? 500 : response.getStatus();
+      MDC.put("event", "http.finalizado"); MDC.put("status", String.valueOf(status));
+      MDC.put("durationMs", String.valueOf(millis));
+      MDC.put("outcome", status >= 500 ? "error" : status >= 400 ? "rechazada" : "ok");
       if (status >= 500) log.error("http.finalizado metodo={} ruta={} status={} duracion_ms={}", request.getMethod(), request.getRequestURI(), status, millis);
       else if (status >= 400) log.warn("http.finalizado metodo={} ruta={} status={} duracion_ms={}", request.getMethod(), request.getRequestURI(), status, millis);
       else if (!request.getMethod().equals("GET")) log.info("http.finalizado metodo={} ruta={} status={} duracion_ms={}", request.getMethod(), request.getRequestURI(), status, millis);

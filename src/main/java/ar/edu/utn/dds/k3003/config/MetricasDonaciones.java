@@ -54,6 +54,7 @@ public class MetricasDonaciones {
   private final DonacionesRepository donacionesRepository;
   private volatile Map<EstadoDonacion, Long> snapshotPorEstado = new EnumMap<>(EstadoDonacion.class);
   private volatile Instant snapshotTomadoEn = Instant.MIN;
+  private volatile java.time.LocalDateTime oldestPending;
 
   public MetricasDonaciones(
       MeterRegistry registry,
@@ -64,6 +65,12 @@ public class MetricasDonaciones {
     this.donacionesRepository = donacionesRepository;
 
     CONTADORES.forEach(nombre -> Counter.builder(nombre).register(registry));
+    Gauge.builder("donatrack.donaciones.ingresadas.antiguedad", () -> {
+      contarPorEstado(EstadoDonacion.INGRESADA);
+      var oldest = oldestPending;
+      return oldest == null ? 0 : Math.max(0, java.time.Duration.between(oldest, java.time.LocalDateTime.now()).toSeconds());
+    }).baseUnit("seconds").description("Edad de la donación INGRESADA más antigua; no equivale a cola Rabbit")
+      .register(registry);
     COMPONENTES_INTEGRADOS.forEach(
         componente ->
             Counter.builder("donatrack.donaciones.integracion." + componente + ".errores")
@@ -101,9 +108,13 @@ public class MetricasDonaciones {
       return; // otro scrape lo refresco mientras esperabamos el lock
     }
     Map<EstadoDonacion, Long> conteo = new EnumMap<>(EstadoDonacion.class);
+    java.time.LocalDateTime oldest = null;
     for (Donacion donacion : donacionesRepository.findAll()) {
       conteo.merge(donacion.getEstadoActual(), 1L, Long::sum);
+      if (donacion.getEstadoActual() == EstadoDonacion.INGRESADA &&
+          (oldest == null || donacion.getFechaIngresoExacta().isBefore(oldest))) oldest = donacion.getFechaIngresoExacta();
     }
+    oldestPending = oldest;
     snapshotPorEstado = conteo;
     snapshotTomadoEn = Instant.now();
   }

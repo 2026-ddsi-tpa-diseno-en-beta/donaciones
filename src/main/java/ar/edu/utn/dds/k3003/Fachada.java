@@ -180,7 +180,7 @@ public class Fachada implements FachadaDonaciones {
                   guardada.getCantidad()));
     }
 
-    org.slf4j.LoggerFactory.getLogger(Fachada.class).info("donacion.registrada donacion={} deposito={} producto={} cantidad={}", guardada.getId(), guardada.getDepositoId(), guardada.getProductoId(), guardada.getCantidad());
+    ar.edu.utn.dds.k3003.observability.DomainEvents.info(org.slf4j.LoggerFactory.getLogger(Fachada.class), "donacion.registrada donacion={} deposito={} producto={} cantidad={}", guardada.getId(), guardada.getDepositoId(), guardada.getProductoId(), guardada.getCantidad());
     incrementarMetrica("donatrack.donaciones.registradas");
     return donacionesMapper.toDTO(guardada);
   }
@@ -257,6 +257,10 @@ public class Fachada implements FachadaDonaciones {
 
     if (EstadoDonacionEnum.ACEPTADA.equals(estado)) {
       incrementarMetrica("donatrack.donaciones.aceptadas");
+      if (meterRegistry != null) io.micrometer.core.instrument.Timer.builder("donatrack.donaciones.ingreso.aceptacion")
+          .description("Desde ingreso hasta primera aceptación; puede existir más de un paquete por donación")
+          .publishPercentileHistogram().register(meterRegistry).record(
+              java.time.Duration.between(donacion.getFechaIngresoExacta(), java.time.LocalDateTime.now()));
     }
 
     return donacionesMapper.toDTO(donacion);
@@ -316,7 +320,7 @@ public class Fachada implements FachadaDonaciones {
     donacion.cambiarEstado(EstadoDonacion.CONQUEJA, descripcion);
     donacionesRepository.save(donacion);
 
-    org.slf4j.LoggerFactory.getLogger(Fachada.class).info("queja.registrada donacion={} estado=CONQUEJA", donacion.getId());
+    ar.edu.utn.dds.k3003.observability.DomainEvents.info(org.slf4j.LoggerFactory.getLogger(Fachada.class), "queja.registrada donacion={} estado=CONQUEJA", donacion.getId());
     incrementarMetrica("donatrack.donaciones.quejas.registradas");
 
     return donacionesMapper.toDTO(donacion);
