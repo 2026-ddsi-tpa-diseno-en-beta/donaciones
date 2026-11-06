@@ -16,7 +16,12 @@ public class FachadaLogisticaHttp implements FachadaLogistica {
   private final RestClient restClient;
 
   public FachadaLogisticaHttp(String baseUrl) {
-    this.restClient = RestClient.builder().requestInterceptor(new ar.edu.utn.dds.k3003.observability.TracePropagationInterceptor()).baseUrl(baseUrl).build();
+    this.restClient =
+        RestClient.builder()
+            .requestInterceptor(
+                new ar.edu.utn.dds.k3003.observability.TracePropagationInterceptor())
+            .baseUrl(baseUrl)
+            .build();
   }
 
   @Override
@@ -30,7 +35,8 @@ public class FachadaLogisticaHttp implements FachadaLogistica {
   }
 
   @Override
-  public AsignacionDTO buscarAsignacionPorPaqueteID(String paqueteID) throws NoSuchElementException {
+  public AsignacionDTO buscarAsignacionPorPaqueteID(String paqueteID)
+      throws NoSuchElementException {
     throw new UnsupportedOperationException();
   }
 
@@ -43,6 +49,7 @@ public class FachadaLogisticaHttp implements FachadaLogistica {
     return restClient
         .post()
         .uri("/depositos/{id}/donacion", depositoID)
+        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
         .body(request)
         .retrieve()
         .body(DepositoDTO.class);
@@ -65,7 +72,8 @@ public class FachadaLogisticaHttp implements FachadaLogistica {
   }
 
   @Override
-  public void setFachadaDonadoresYEntidades(FachadaDonadoresYEntidades fachadaDonadoresYEntidades) {}
+  public void setFachadaDonadoresYEntidades(
+      FachadaDonadoresYEntidades fachadaDonadoresYEntidades) {}
 
   @Override
   public void setFachadaDonaciones(FachadaDonaciones fachadaDonaciones) {}

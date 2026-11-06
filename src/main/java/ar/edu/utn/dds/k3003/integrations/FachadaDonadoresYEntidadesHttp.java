@@ -16,7 +16,12 @@ public class FachadaDonadoresYEntidadesHttp implements FachadaDonadoresYEntidade
   private final RestClient restClient;
 
   public FachadaDonadoresYEntidadesHttp(String baseUrl) {
-    this.restClient = RestClient.builder().requestInterceptor(new ar.edu.utn.dds.k3003.observability.TracePropagationInterceptor()).baseUrl(baseUrl).build();
+    this.restClient =
+        RestClient.builder()
+            .requestInterceptor(
+                new ar.edu.utn.dds.k3003.observability.TracePropagationInterceptor())
+            .baseUrl(baseUrl)
+            .build();
   }
 
   @Override
@@ -56,6 +61,7 @@ public class FachadaDonadoresYEntidadesHttp implements FachadaDonadoresYEntidade
     restClient
         .post()
         .uri("/donadores/{id}/quejas", quejaDTO.donadorID())
+        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
         .body(request)
         .retrieve()
         .toBodilessEntity();

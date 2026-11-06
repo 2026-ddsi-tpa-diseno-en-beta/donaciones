@@ -28,7 +28,14 @@ import org.springframework.test.web.servlet.MvcResult;
  * cada tipo de error devuelva el codigo correcto. Antes toda excepcion terminaba en un 400, con lo
  * cual una caida de otro componente se le reportaba al cliente como culpa suya.
  */
-@SpringBootTest(classes = Application.class)
+@SpringBootTest(
+    classes = Application.class,
+    properties = {
+      "donatrack.read-model.publisher.enabled=true",
+      "READ_MODEL_SEND_INITIAL_DELAY_MS=3600000",
+      "spring.rabbitmq.dynamic=false",
+      "management.health.rabbit.enabled=false"
+    })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class DonacionesApiTest {
@@ -45,7 +52,8 @@ class DonacionesApiTest {
   void setUp() throws Exception {
     fachada.limpiarDatos();
 
-    categoriaId = idDe(post("/categorias"), """
+    categoriaId =
+        idDe(post("/categorias"), """
         {"nombre":"Alimentos","descripcion":"comida"}""");
     subcategoriaId =
         idDe(
@@ -87,7 +95,8 @@ class DonacionesApiTest {
   void endpointsNoModificables() throws Exception {
     MvcResult creada =
         mockMvc
-            .perform(post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
+            .perform(
+                post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.estado").value("INGRESADA"))
             .andReturn();
@@ -150,7 +159,8 @@ class DonacionesApiTest {
   void historialPorHttp() throws Exception {
     MvcResult creada =
         mockMvc
-            .perform(post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
+            .perform(
+                post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
             .andReturn();
     String id = objectMapper.readTree(creada.getResponse().getContentAsString()).get("id").asText();
 
@@ -170,7 +180,8 @@ class DonacionesApiTest {
   void transicionInvalida() throws Exception {
     MvcResult creada =
         mockMvc
-            .perform(post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
+            .perform(
+                post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
             .andReturn();
     String id = objectMapper.readTree(creada.getResponse().getContentAsString()).get("id").asText();
 
@@ -185,7 +196,8 @@ class DonacionesApiTest {
   void conQuejaRequiereRegistrarLaQueja() throws Exception {
     MvcResult creada =
         mockMvc
-            .perform(post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
+            .perform(
+                post("/donaciones").contentType(MediaType.APPLICATION_JSON).content(donacion(5)))
             .andReturn();
     String id = objectMapper.readTree(creada.getResponse().getContentAsString()).get("id").asText();
 
@@ -273,7 +285,8 @@ class DonacionesApiTest {
   }
 
   @Test
-  @DisplayName("Se puede crear un producto sin identificador y la subcategoria viaja en la respuesta")
+  @DisplayName(
+      "Se puede crear un producto sin identificador y la subcategoria viaja en la respuesta")
   void productoSinIdentificador() throws Exception {
     mockMvc
         .perform(get("/productos/{id}", productoId))

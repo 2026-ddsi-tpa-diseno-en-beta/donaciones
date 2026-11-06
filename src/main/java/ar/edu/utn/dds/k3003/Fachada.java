@@ -53,6 +53,41 @@ public class Fachada implements FachadaDonaciones {
 
   private FachadaDonadoresYEntidades fachadaDonadoresYEntidades;
   private FachadaLogistica fachadaLogistica;
+
+  @Autowired(required = false)
+  private ar.edu.utn.dds.k3003.messaging.ReadModelEventPublisher readModel;
+  private final com.fasterxml.jackson.databind.ObjectMapper snapshotMapper=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules();
+
+  private void emit(String type, String id, String operation, Object payload) {
+    if (readModel != null)
+      readModel.publicar(
+          type,
+          id,
+          operation,
+          snapshotMapper.convertValue(payload,new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String,Object>>() {}));
+  }
+
+  private void emitDonation(Donacion d) {
+    java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+    data.put("id", d.getId());
+    data.put("donadorID", d.getDonadorId());
+    data.put("depositoID", d.getDepositoId());
+    data.put("productoID", d.getProductoId());
+    data.put("cantidad", d.getCantidad());
+    data.put("descripcion", d.getDescripcion());
+    data.put("estado", d.getEstadoActual().name());
+    data.put("fechaIngreso", d.getFechaIngresoExacta().toString());
+    data.put(
+        "historial",
+        d.getHistorialEstados().stream()
+            .map(
+                c ->
+                    java.util.Map.of(
+                        "estado", c.getEstado().name(), "fecha", c.getFechaCambio().toString()))
+            .toList());
+    emit("donacion", d.getId(), "UPSERT", data);
+  }
+
   private final DonacionesRepository donacionesRepository;
   private final ProductosRepository productosRepository;
   private final IdentificadoresRepository identificadoresRepository;
@@ -180,8 +215,15 @@ public class Fachada implements FachadaDonaciones {
                   guardada.getCantidad()));
     }
 
-    ar.edu.utn.dds.k3003.observability.DomainEvents.info(org.slf4j.LoggerFactory.getLogger(Fachada.class), "donacion.registrada donacion={} deposito={} producto={} cantidad={}", guardada.getId(), guardada.getDepositoId(), guardada.getProductoId(), guardada.getCantidad());
+    ar.edu.utn.dds.k3003.observability.DomainEvents.info(
+        org.slf4j.LoggerFactory.getLogger(Fachada.class),
+        "donacion.registrada donacion={} deposito={} producto={} cantidad={}",
+        guardada.getId(),
+        guardada.getDepositoId(),
+        guardada.getProductoId(),
+        guardada.getCantidad());
     incrementarMetrica("donatrack.donaciones.registradas");
+    emitDonation(guardada);
     return donacionesMapper.toDTO(guardada);
   }
 
@@ -250,17 +292,25 @@ public class Fachada implements FachadaDonaciones {
       throws NoSuchElementException {
     Donacion donacion = buscarDonacion(donacionID);
 
-    if (donacion.getEstadoActual() == donacionesMapper.toModel(estado)) return donacionesMapper.toDTO(donacion);
+    if (donacion.getEstadoActual() == donacionesMapper.toModel(estado))
+      return donacionesMapper.toDTO(donacion);
     donacion.cambiarEstado(
         donacionesMapper.toModel(estado), "Cambio de estado reportado por Logistica/Sistema");
     donacionesRepository.save(donacion);
+    emitDonation(donacion);
 
     if (EstadoDonacionEnum.ACEPTADA.equals(estado)) {
       incrementarMetrica("donatrack.donaciones.aceptadas");
-      if (meterRegistry != null) io.micrometer.core.instrument.Timer.builder("donatrack.donaciones.ingreso.aceptacion")
-          .description("Desde ingreso hasta primera aceptación; puede existir más de un paquete por donación")
-          .publishPercentileHistogram().register(meterRegistry).record(
-              java.time.Duration.between(donacion.getFechaIngresoExacta(), java.time.LocalDateTime.now()));
+      if (meterRegistry != null)
+        io.micrometer.core.instrument.Timer.builder("donatrack.donaciones.ingreso.aceptacion")
+            .description(
+                "Desde ingreso hasta primera aceptación; puede existir más de un paquete por"
+                    + " donación")
+            .publishPercentileHistogram()
+            .register(meterRegistry)
+            .record(
+                java.time.Duration.between(
+                    donacion.getFechaIngresoExacta(), java.time.LocalDateTime.now()));
     }
 
     return donacionesMapper.toDTO(donacion);
@@ -319,8 +369,12 @@ public class Fachada implements FachadaDonaciones {
 
     donacion.cambiarEstado(EstadoDonacion.CONQUEJA, descripcion);
     donacionesRepository.save(donacion);
+    emitDonation(donacion);
 
-    ar.edu.utn.dds.k3003.observability.DomainEvents.info(org.slf4j.LoggerFactory.getLogger(Fachada.class), "queja.registrada donacion={} estado=CONQUEJA", donacion.getId());
+    ar.edu.utn.dds.k3003.observability.DomainEvents.info(
+        org.slf4j.LoggerFactory.getLogger(Fachada.class),
+        "queja.registrada donacion={} estado=CONQUEJA",
+        donacion.getId());
     incrementarMetrica("donatrack.donaciones.quejas.registradas");
 
     return donacionesMapper.toDTO(donacion);
@@ -334,8 +388,8 @@ public class Fachada implements FachadaDonaciones {
   }
 
   /**
-   * Alta de producto indicando la subcategoria, que es la unidad minima de asignacion. El
-   * {@code ProductoDTO} de la catedra no tiene ese campo, por eso viaja aparte.
+   * Alta de producto indicando la subcategoria, que es la unidad minima de asignacion. El {@code
+   * ProductoDTO} de la catedra no tiene ese campo, por eso viaja aparte.
    */
   public ProductoDTO agregarProducto(ProductoDTO productoDTO, String subcategoriaID) {
     if (productoDTO == null) {
@@ -353,6 +407,7 @@ public class Fachada implements FachadaDonaciones {
     Producto guardado = productosRepository.save(producto);
 
     incrementarMetrica("donatrack.donaciones.productos.registrados");
+    emit("producto", guardado.getId(), "UPSERT", guardado);
     return productoMapper.toDTO(guardado);
   }
 
@@ -371,7 +426,9 @@ public class Fachada implements FachadaDonaciones {
         subcategoriaID,
         identificador);
 
-    return productoMapper.toDTO(productosRepository.save(producto));
+    Producto guardado = productosRepository.save(producto);
+    emit("producto", guardado.getId(), "UPSERT", guardado);
+    return productoMapper.toDTO(guardado);
   }
 
   public void eliminarProducto(String productoID) {
@@ -380,10 +437,13 @@ public class Fachada implements FachadaDonaciones {
     List<Donacion> donaciones = donacionesRepository.buscarPorProducto(producto.getId());
     if (!donaciones.isEmpty()) {
       throw new RecursoEnUsoException(
-          "No se puede eliminar el producto: tiene " + donaciones.size() + " donacion(es) asociada(s)");
+          "No se puede eliminar el producto: tiene "
+              + donaciones.size()
+              + " donacion(es) asociada(s)");
     }
 
     productosRepository.deleteById(producto.getId());
+    emit("producto", producto.getId(), "DELETE", java.util.Map.of());
     incrementarMetrica("donatrack.donaciones.productos.eliminados");
   }
 
@@ -417,8 +477,7 @@ public class Fachada implements FachadaDonaciones {
             .findById(categoriaID)
             .orElseThrow(() -> new NoSuchElementException("No existe la categoria indicada"));
 
-    List<Categoria> subcategorias =
-        categoriasRepository.buscarSubcategoriasDe(categoria.getId());
+    List<Categoria> subcategorias = categoriasRepository.buscarSubcategoriasDe(categoria.getId());
 
     if (subcategoriaID == null || subcategoriaID.isBlank()) {
       if (!subcategorias.isEmpty()) {
@@ -541,7 +600,8 @@ public class Fachada implements FachadaDonaciones {
   // ------------------------------------------------------------- categorias
 
   public CategoriaDTO agregarCategoria(CategoriaDTO categoriaDTO) {
-    return agregarCategoria(categoriaDTO, categoriaDTO == null ? null : categoriaDTO.subcategoriaID());
+    return agregarCategoria(
+        categoriaDTO, categoriaDTO == null ? null : categoriaDTO.subcategoriaID());
   }
 
   /**
@@ -574,13 +634,16 @@ public class Fachada implements FachadaDonaciones {
     Categoria guardada = categoriasRepository.save(categoria);
 
     incrementarMetrica("donatrack.donaciones.categorias.registradas");
+    emit("categoria", guardada.getId(), "UPSERT", guardada);
     return categoriaMapper.toDTO(guardada);
   }
 
   public CategoriaDTO modificarCategoria(String categoriaID, CategoriaDTO categoriaDTO) {
     Categoria categoria = buscarCategoria(categoriaID);
     categoria.modificar(categoriaDTO.nombre(), categoriaDTO.descripcion());
-    return categoriaMapper.toDTO(categoriasRepository.save(categoria));
+    Categoria guardada = categoriasRepository.save(categoria);
+    emit("categoria", guardada.getId(), "UPSERT", guardada);
+    return categoriaMapper.toDTO(guardada);
   }
 
   public void eliminarCategoria(String categoriaID) {
@@ -599,6 +662,7 @@ public class Fachada implements FachadaDonaciones {
     }
 
     categoriasRepository.deleteById(categoria.getId());
+    emit("categoria", categoria.getId(), "DELETE", java.util.Map.of());
   }
 
   public CategoriaDTO buscarCategoriaPorID(String categoriaID) throws NoSuchElementException {
@@ -639,7 +703,22 @@ public class Fachada implements FachadaDonaciones {
 
   // ----------------------------------------------------------------- admin
 
+  public void republicarModeloLectura() {
+    donacionesRepository.findAll().forEach(this::emitDonation);
+    productosRepository.findAll().forEach(p -> emit("producto", p.getId(), "UPSERT", p));
+    categoriasRepository.findAll().forEach(c -> emit("categoria", c.getId(), "UPSERT", c));
+  }
+
   public void limpiarDatos() {
+    donacionesRepository
+        .findAll()
+        .forEach(d -> emit("donacion", d.getId(), "DELETE", java.util.Map.of()));
+    productosRepository
+        .findAll()
+        .forEach(p -> emit("producto", p.getId(), "DELETE", java.util.Map.of()));
+    categoriasRepository
+        .findAll()
+        .forEach(c -> emit("categoria", c.getId(), "DELETE", java.util.Map.of()));
     donacionesRepository.deleteAll();
     productosRepository.deleteAll();
     identificadoresRepository.deleteAll();
